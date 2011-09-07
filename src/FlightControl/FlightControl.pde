@@ -92,10 +92,9 @@ void printAcceleration(){
 }
 
 void loop(){ 
-    //henter og printer kompassinfo
     heading = getHeading();
 
-    // leser avstandssensorer
+    // read input from sensors
     altitudeRange = analogRead(leftRangePin);
     leftRange     = analogRead(leftRangePin);
     rightRange    = analogRead(rightRangePin);
@@ -109,11 +108,9 @@ void loop(){
         smooth(forwardRange, filterVal, forwardRange);
     }
 
-    altitudePID.Compute();  //kjører PID for høyde
+    altitudePID.Compute();
 
-    //Skriver høyde sensor info til skjerm
     //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
-
     if(DEBUG == 1){
         printHeading();
         printAltitude();
@@ -156,29 +153,31 @@ void turnRight(){
 void accelerateUp(double acceleration){
   
   
-  Serial.print("--- Accelerating up with acceleration: ");
-  Serial.println(acceleration);
+  if(DEBUG == 1){
+      Serial.print("--- Accelerating up with acceleration: ");
+      Serial.println(acceleration);
+  }
   
-  analogWrite(motor2Pin, 0); //slår av motorer, mens servo kjører pga strøm/forstyrrelser
+  analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
-  elevator.write(30); // snur stag i riktig posisjon 
-  delay(5);            //venter litt på stag
-  analogWrite(motor2Pin, acceleration);  //starter motorer med PID akselerasjon
+  elevator.write(30);                   // snur stag i riktig posisjon
+  delay(5);                             // venter litt på stag
+  analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
   
 }
 
 void accelerateDown(double acceleration){
   
-   Serial.print("--- Accelerating down with acceleration: ");
-   Serial.println(acceleration);
-  analogWrite(motor2Pin, 0); //slår av motorer, mens servo kjører pga strøm/forstyrrelser
-  digitalWrite(motor1Pin, LOW);  
-  
-  elevator.write(122); //snur stag
-  delay(5);           //venter på stag
-  
-  analogWrite(motor2Pin, acceleration); //starter motorer med PID akselerasjon
+  if(DEBUG == 1){
+      Serial.print("--- Accelerating down with acceleration: ");
+      Serial.println(acceleration);
+  }
+  analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
+  digitalWrite(motor1Pin, LOW);
+  elevator.write(122);                  // snur stag
+  delay(5);                             // venter på stag
+  analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
   
   
@@ -187,37 +186,31 @@ void accelerateDown(double acceleration){
 
 void defaultGlide(double acceleration){
   
-  Serial.print("--- DefaultGlide with default acceleration: ");
-  Serial.println(acceleration);
+  if(DEBUG == 1){
+      Serial.print("--- DefaultGlide with default acceleration: ");
+      Serial.println(acceleration);
+  }
   
-  analogWrite(motor2Pin, 0); //slår av motorer, mens servo kjører pga strøm/forstyrrelser
-  digitalWrite(motor1Pin, LOW);   
-  
-  elevator.write(77); //snur stag
-  delay(5);           //venter på stag
-  
-  analogWrite(motor2Pin, acceleration); //kjører motor med PID akselerasjon
+  analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
+  digitalWrite(motor1Pin, LOW);
+  elevator.write(77);                   // snur stag
+  delay(5);                             // venter på stag
+  analogWrite(motor2Pin, acceleration); // kjører motor med PID akselerasjon
   digitalWrite(motor1Pin,LOW);
-  //
-  //
-  
   //delay(200); //legger inn et delay for å vente å se om fremover aksen stabiliserer høyden?
-
-
 }
 
-void landing (double acceleration) { //denne metoden lander ballongen f.eks ved lite strøm
-  
+void land(double acceleration) {
    
-   Serial.print("--- LANDING: ");
-   Serial.println(acceleration);
-  analogWrite(motor2Pin, 0); //slår av motorer, mens servo kjører pga strøm/forstyrrelser
-  digitalWrite(motor1Pin, LOW);  
- 
-  elevator.write(122); //snur stag
-  delay(5);           //venter på stag
-  
-  analogWrite(motor2Pin, acceleration); //starter motorer med PID akselerasjon
+  if(DEBUG == 1){
+      Serial.print("--- LANDING: ");
+      Serial.println(acceleration);
+  }
+  analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
+  digitalWrite(motor1Pin, LOW);
+  elevator.write(122);                  // snur stag
+  delay(5);                             // venter på stag
+  analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
 }
 
@@ -246,8 +239,7 @@ int batteryMonitor () {
 
 */
 void batteryLed(int colour, int strength) {
-analogWrite(colour, 200);
-
+    analogWrite(colour, 200);
 }
 
 float getHeading() {  
@@ -280,8 +272,7 @@ float getHeading() {
 
 int smooth(int data, float filterVal, float smoothedVal){
 
-
-  if (filterVal > 1){      // check to make sure param's are within range
+  if (filterVal > 1){ // check to make sure param's are within range
     filterVal = .99;
   }
   else if (filterVal <= 0){
@@ -293,12 +284,7 @@ int smooth(int data, float filterVal, float smoothedVal){
   return (int)smoothedVal;
 }
 
-
-
-
-  
-  
-
+/*Tests all the engines*/
 void testFlight(){
   accelerateUp(102);
   delay(3000);
