@@ -5,7 +5,7 @@
 Servo elevator;
 int currentHight;
 double acceleration, defaultAcceleration,thrust;
-double targetHight,voltage, leftRange, rightRange, forwardRange, smoothedHight;
+double targetHight,voltage, leftRange, rightRange, forwardRange, altitudeRange;
 
 static int elevatorPin = 4; // "staget" styres over denne
 static int motor1Pin = 9;    // H-bridge leg 1 (pin 2, 1A)
@@ -15,6 +15,7 @@ static int ledPin = 13;      // LED
 static int tailPin1 = 7;     // tailMotor leg 1
 static int tailPin2 = 6;    // talMotor leg 2
 static int enablePin2 = 5;  //enables side 2 of the H-bridge
+
 // LED'S
 //int red = 2; //this sets the red led pin
 //int green = 8; //this sets the green led pin
@@ -39,17 +40,15 @@ float filterVal;       // this determines smoothness  - .0001 is max  1 is off (
 float smoothedVal;     // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
 float smoothedVal2;   // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 
-PID pid(&smoothedHight, &acceleration, &targetHight,4,0,0,DIRECT); //kall på PID biblioteket med verdier
+PID altitudePID(&altitudeRange, &acceleration, &targetHight,4,0,0,DIRECT); //kall på PID biblioteket med verdier
 
-void setup()
+void setup() {
 
-{
 Serial.begin(9600); //skjermutskrift på
 
-pid.SetMode(AUTOMATIC); //PID PÅ
-pid.SetOutputLimits(-255, 255); 
-pid.SetSampleTime(5);
-
+altitudePID.SetMode(AUTOMATIC);
+altitudePID.SetOutputLimits(-255, 255); 
+altitudePID.SetSampleTime(5);
 
 //enabling all motorpins
 pinMode(motor1Pin, OUTPUT); 
@@ -88,13 +87,12 @@ void loop(){
   forwardRange = analogRead(forwardRangePin);
   //smoother sensor readings
   
-  //TODO: smooth alt
-  smoothedVal =  smooth(currentHight, filterVal, smoothedVal);   // second parameter determines smoothness  - 0 is off,  .9999 is max smooth 
-
-  smoothedHight = smoothedVal;
+  smooth(currentHight, filterVal, altitudeRange); 
+  smooth(currentHight, filterVal, leftRange);     
+  smooth(currentHight, filterVal, rightRange);    
+  smooth(currentHight, filterVal, forwardRange);  
  
-  pid.Compute();  //kjører PID for høyde
-  
+  altitudePID.Compute();  //kjører PID for høyde
   
   //Skriver høyde sensor info til skjerm
   Serial.print("--- HIGHT Sensor reading is: ");
