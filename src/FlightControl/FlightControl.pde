@@ -39,6 +39,9 @@ float filterVal;       // this determines smoothness  - .0001 is max  1 is off (
 float smoothedVal;     // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
 float smoothedVal2;   // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 
+float heading, course;
+double d_heading;
+
 PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); //kall på PID biblioteket med verdier
 
 void setup() {
@@ -65,19 +68,21 @@ elevator.attach(elevatorPin); // binder servo-bibl til staget
 HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
 Wire.begin();
 
-targetAltitude = 76
-; //her settes målhøyden
+targetAltitude = 200;
 filterVal = 0.9;
-
-
 }
+
+void printHeading(){
+    Serial.print("--- HEADING: ");
+    Serial.println(heading);
+}
+
 
 void loop(){ 
   //henter og printer kompassinfo
-  float heading = getHeading();
-  Serial.print("Kurs: ");
-  Serial.print(heading);
-  Serial.println(" grader"); 
+  heading = getHeading();
+
+  printHeading();
     
    // leser avstandssensorer
   altitudeRange = analogRead(leftRangePin);
@@ -98,7 +103,6 @@ void loop(){
   Serial.print("--- HIGHT Sensor reading is: ");
   Serial.println(altitudeRange);
   //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
-  //
   Serial.print(acceleration);
   
   //batteryMonitor();
