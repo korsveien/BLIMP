@@ -1,10 +1,10 @@
-
 /*******************************************************************************
 * Authors: Fredrik Cappelen and Nils Peder Korsveien                           *
 *                                                                              *
 * SOURCE CODE AND DATA SHEETS                                                  *
 * H-bridge data sheet : www.sparkfun.com/datasheets/IC/SN754410.pdf            *
 * H-bridge how-to     : http://itp.nyu.edu/physcomp/Labs/DCMotorControl#toc8   *
+* PID-library         : http://arduino.cc/playground/Code/PIDLibrary           *
 ********************************************************************************/
 
 #include <PID_v1.h>
@@ -56,10 +56,15 @@ float filterVal;    // this determines smoothness  - .0001 is max  1 is off (no 
 float smoothedVal;  // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
 float smoothedVal2; // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 
-float heading, course;
-double d_heading;
+float heading;
+double d_heading, course;
 
-PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); //kall på PID biblioteket med verdier
+// PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, Direction)
+// Input    : Variable we are trying to control(double)
+// Output   : The variable that will be adjusted by the PID(double)
+// Setpoint : The value we want to Input to maintain(double)
+PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); 
+PID tailPID(&d_heading, &tailAcceleration, &course,4,0,0,DIRECT); 
 
 void setup() {
     Serial.begin(9600); //skjermutskrift på
@@ -86,7 +91,7 @@ void setup() {
     HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
     Wire.begin();
 
-    targetAltitude = 200;
+    targetAltitude = 50;
     filterVal = 0.9;
 }
 
