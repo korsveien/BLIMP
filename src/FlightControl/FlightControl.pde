@@ -16,7 +16,7 @@
 #define TESTDOUBLES 0
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
-#define TESTDOWN 1
+#define TESTDOWN 0
 
 Servo elevator;
 double acceleration, defaultAcceleration,thrust;
