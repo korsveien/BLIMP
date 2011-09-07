@@ -1,24 +1,33 @@
+
+/******************************************************
+* Authors: Fredrik Cappelen and Nils Peder Korsveien  *
+* Source code and data sheets:                        *
+* www.sparkfun.com/datasheets/IC/SN754410.pdf         *
+*******************************************************/
+
 #include <PID_v1.h>
 #include <Servo.h>
 #include <Wire.h>
 
 #define SMOOTHED 1
 #define DEBUG 1
-
+#define TESTDOUBLES 0
+#define TESTTAIL 0
+#define TESTRIGHTTAIL 1
 
 Servo elevator;
-int currentHight;
 double acceleration, defaultAcceleration,thrust;
-double targetAltitude,voltage, leftRange, rightRange, forwardRange, altitudeRange;
+double tailAcceleration, tailDefaulAcceleration, tailThrust;
+double targetAltitude, voltage, leftRange, rightRange, forwardRange, altitudeRange;
 
 static int elevatorPin = 4; // "staget" styres over denne
-static int motor1Pin = 9;    // H-bridge leg 1 (pin 2, 1A)
-static int motor2Pin = 11;    // H-bridge leg 2 (pin 7, 2A)
-static int enablePin = 10;    // H-bridge enable pin
-static int ledPin = 13;      // LED 
-static int tailPin1 = 7;     // tailMotor leg 1
+static int motor1Pin = 9;   // H-bridge leg 1 (pin 2, 1A)
+static int motor2Pin = 11;  // H-bridge leg 2 (pin 7, 2A)
+static int enablePin = 10;  // H-bridge enable pin
+static int ledPin = 13;     // LED
+static int tailPin1 = 7;    // tailMotor leg 1
 static int tailPin2 = 6;    // talMotor leg 2
-static int enablePin2 = 5;  //enables side 2 of the H-bridge
+static int enablePin2 = 5;  // enables side 2 of the H-bridge
 // LED'S
 //int red = 2; //this sets the red led pin
 //int green = 8; //this sets the green led pin
@@ -63,8 +72,10 @@ void setup() {
     pinMode(tailPin1, OUTPUT);
     pinMode(tailPin2, OUTPUT);
     pinMode(ledPin, OUTPUT);
+
     digitalWrite(enablePin, HIGH);  //fire up H-bridge
     digitalWrite(enablePin2, HIGH); // fire up H-bridge
+
     elevator.attach(elevatorPin); // binder servo-bibl til staget
 
     //kompass start:
@@ -128,33 +139,55 @@ void accelerate(){
 
 
 void loop(){ 
-    heading = getHeading();
-    readAllSensors();
-
-    if(SMOOTHED == 1){
-        smoothInput();
+    if(TESTDOUBLES == 1){
+        testDoubleEngines();
     }
-
-    altitudePID.Compute();
-
-    //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
-    if(DEBUG == 1){
-        printHeading();
-        printAltitude();
-        printAcceleration();
+    else if(TESTTAIL == 1){
+        testTailEngine();
     }
-    accelerate();
-    //batteryMonitor();
+    else if(TESTRIGHTTAIL == 1){
+        testRightTail();
+    }
+    else{
+        heading = getHeading();
+        readAllSensors();
 
+        if(SMOOTHED == 1){
+            smoothInput();
+        }
+
+        altitudePID.Compute();
+
+        //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
+        if(DEBUG == 1){
+            printHeading();
+            printAltitude();
+            printAcceleration();
+        }
+        accelerate();
+        //batteryMonitor();
+    }
 }
 //deadspot ca. mellom 84-102
 
-void turnLeft() {
-  
-  
+void turnLeft(double acceleration) {
+  if(DEBUG == 1){
+      Serial.print("--- Turning left with acceleration: ");
+      Serial.println(acceleration);
+  }
+  digitalWrite(tailPin1, LOW);
+  analogWrite(tailPin2, acceleration);
+  digitalWrite(tailPin1, LOW);
 }
 
-void turnRight(){
+void turnRight(double acceleration){
+  if(DEBUG == 1){
+      Serial.print("--- Turning right with acceleration: ");
+      Serial.println(acceleration);
+  }
+  digitalWrite(tailPin2, LOW);
+  analogWrite(tailPin1, acceleration);
+  digitalWrite(tailPin2, LOW);
 }
 
 
@@ -292,8 +325,7 @@ int smooth(int data, float filterVal, float smoothedVal){
   return (int)smoothedVal;
 }
 
-/*Tests all the engines*/
-void testFlight(){
+void testDoubleEngines(){
   accelerateUp(102);
   delay(3000);
   accelerateDown(102);
@@ -301,10 +333,56 @@ void testFlight(){
   defaultGlide(102);
   delay(3000);
   
-  accelerateUp(115);
+  accelerateUp(180);
   delay(3000);
-  accelerateDown(115);
+  accelerateDown(180);
   delay(3000);
-  defaultGlide(115);
+  defaultGlide(180);
+  delay(3000);
+
+  accelerateUp(255);
+  delay(3000);
+  accelerateDown(255);
+  delay(3000);
+  defaultGlide(255);
+  delay(3000);
+
+}
+
+void testTailEngine(){
+  turnRight(102);
+  delay(3000);
+  turnLeft(102);
+  delay(3000);
+
+  turnRight(180);
+  delay(3000);
+  turnLeft(180);
+  delay(3000);
+
+  turnRight(255);
+  delay(3000);
+  turnLeft(255);
+  delay(3000);
+}
+
+void testRightTail(){
+  turnRight(102);
+  delay(3000);
+  turnRight(120);
+  delay(3000);
+  turnRight(125);
+  delay(3000);
+  turnRight(126);
+  delay(3000);
+  turnRight(127);
+  delay(3000);
+  turnRight(128);
+  delay(3000);
+  turnRight(129);
+  delay(3000);
+  turnRight(130);
+  delay(3000);
+  turnRight(255);
   delay(3000);
 }
