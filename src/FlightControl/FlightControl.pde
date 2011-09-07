@@ -5,7 +5,7 @@
 Servo elevator;
 int currentHight;
 double acceleration, defaultAcceleration,thrust;
-double targetHight,voltage, leftRange, rightRange, forwardRange, altitudeRange;
+double targetAltitude,voltage, leftRange, rightRange, forwardRange, altitudeRange;
 
 static int elevatorPin = 4; // "staget" styres over denne
 static int motor1Pin = 9;    // H-bridge leg 1 (pin 2, 1A)
@@ -15,7 +15,6 @@ static int ledPin = 13;      // LED
 static int tailPin1 = 7;     // tailMotor leg 1
 static int tailPin2 = 6;    // talMotor leg 2
 static int enablePin2 = 5;  //enables side 2 of the H-bridge
-
 // LED'S
 //int red = 2; //this sets the red led pin
 //int green = 8; //this sets the green led pin
@@ -40,7 +39,7 @@ float filterVal;       // this determines smoothness  - .0001 is max  1 is off (
 float smoothedVal;     // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
 float smoothedVal2;   // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 
-PID altitudePID(&altitudeRange, &acceleration, &targetHight,4,0,0,DIRECT); //kall på PID biblioteket med verdier
+PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); //kall på PID biblioteket med verdier
 
 void setup() {
 
@@ -66,7 +65,7 @@ elevator.attach(elevatorPin); // binder servo-bibl til staget
 HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
 Wire.begin();
 
-targetHight = 76
+targetAltitude = 76
 ; //her settes målhøyden
 filterVal = 0.9;
 
@@ -81,23 +80,23 @@ void loop(){
   Serial.println(" grader"); 
     
    // leser avstandssensorer
-  currentHight = analogRead(leftRangePin);
+  altitudeRange = analogRead(leftRangePin);
   leftRange = analogRead(leftRangePin);
   rightRange = analogRead(rightRangePin);
   forwardRange = analogRead(forwardRangePin);
-  //smoother sensor readings
   
-  smooth(currentHight, filterVal, altitudeRange); 
-  smooth(currentHight, filterVal, leftRange);     
-  smooth(currentHight, filterVal, rightRange);    
-  smooth(currentHight, filterVal, forwardRange);  
+  // smooth out sensor readings
+  smooth(altitudeRange, filterVal, altitudeRange);
+  smooth(leftRange, filterVal, leftRange);
+  smooth(rightRange, filterVal, rightRange);
+  smooth(forwardRange, filterVal, forwardRange);
  
   altitudePID.Compute();  //kjører PID for høyde
   
+  
   //Skriver høyde sensor info til skjerm
   Serial.print("--- HIGHT Sensor reading is: ");
-  Serial.println(smoothedVal
-  );
+  Serial.println(altitudeRange);
   //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
   //
   Serial.print(acceleration);
