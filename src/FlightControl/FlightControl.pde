@@ -49,7 +49,6 @@ double d_heading;
 PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); //kall på PID biblioteket med verdier
 
 void setup() {
-
 Serial.begin(9600); //skjermutskrift på
 
 altitudePID.SetMode(AUTOMATIC);
@@ -91,33 +90,21 @@ void printAcceleration(){
     Serial.print(acceleration);
 }
 
-void loop(){ 
-    heading = getHeading();
-
-    // read input from sensors
+void readAllSensors(){
     altitudeRange = analogRead(leftRangePin);
     leftRange     = analogRead(leftRangePin);
     rightRange    = analogRead(rightRangePin);
     forwardRange  = analogRead(forwardRangePin);
+}
 
-    // smooth out sensor readings
-    if(SMOOTHED == 1){
-        smooth(altitudeRange, filterVal, altitudeRange);
-        smooth(leftRange, filterVal, leftRange);
-        smooth(rightRange, filterVal, rightRange);
-        smooth(forwardRange, filterVal, forwardRange);
-    }
+void smoothInput(){
+    smooth(altitudeRange, filterVal, altitudeRange);
+    smooth(leftRange, filterVal, leftRange);
+    smooth(rightRange, filterVal, rightRange);
+    smooth(forwardRange, filterVal, forwardRange);
+}
 
-    altitudePID.Compute();
-
-    //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
-    if(DEBUG == 1){
-        printHeading();
-        printAltitude();
-        printAcceleration();
-    }
-    //batteryMonitor();
-
+void accelerate(){
     if(acceleration < 0){
 
         thrust = (-acceleration);
@@ -137,7 +124,28 @@ void loop(){
     else { 
         defaultGlide(120);
     }
-    
+}
+
+
+void loop(){ 
+    heading = getHeading();
+    readAllSensors();
+
+    if(SMOOTHED == 1){
+        smoothInput();
+    }
+
+    altitudePID.Compute();
+
+    //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
+    if(DEBUG == 1){
+        printHeading();
+        printAltitude();
+        printAcceleration();
+    }
+    accelerate();
+    //batteryMonitor();
+
 }
 //deadspot ca. mellom 84-102
 
