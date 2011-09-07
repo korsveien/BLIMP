@@ -12,8 +12,8 @@
 #define SMOOTHED 1
 #define DEBUG 1
 #define TESTDOUBLES 0
-#define TESTTAIL 0
-#define TESTRIGHTTAIL 1
+#define TESTTAIL 1
+#define TESTRIGHTTAIL 0
 
 Servo elevator;
 double acceleration, defaultAcceleration,thrust;
@@ -176,8 +176,8 @@ void turnLeft(double acceleration) {
       Serial.println(acceleration);
   }
   digitalWrite(tailPin1, LOW);
-  analogWrite(tailPin2, acceleration);
-  digitalWrite(tailPin1, LOW);
+  digitalWrite(tailPin2, HIGH);
+  analogWrite(enablePin2, acceleration);
 }
 
 void turnRight(double acceleration){
@@ -185,15 +185,13 @@ void turnRight(double acceleration){
       Serial.print("--- Turning right with acceleration: ");
       Serial.println(acceleration);
   }
+  digitalWrite(tailPin1, HIGH);
   digitalWrite(tailPin2, LOW);
-  analogWrite(tailPin1, acceleration);
-  digitalWrite(tailPin2, LOW);
+  analogWrite(enablePin2, acceleration);
 }
 
 
 void accelerateUp(double acceleration){
-  
-  
   if(DEBUG == 1){
       Serial.print("--- Accelerating up with acceleration: ");
       Serial.println(acceleration);
