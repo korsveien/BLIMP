@@ -1,9 +1,11 @@
 
-/******************************************************
-* Authors: Fredrik Cappelen and Nils Peder Korsveien  *
-* Source code and data sheets:                        *
-* www.sparkfun.com/datasheets/IC/SN754410.pdf         *
-*******************************************************/
+/*******************************************************************************
+* Authors: Fredrik Cappelen and Nils Peder Korsveien                           *
+*                                                                              *
+* SOURCE CODE AND DATA SHEETS                                                  *
+* H-bridge data sheet : www.sparkfun.com/datasheets/IC/SN754410.pdf            *
+* H-bridge how-to     : http://itp.nyu.edu/physcomp/Labs/DCMotorControl#toc8   *
+********************************************************************************/
 
 #include <PID_v1.h>
 #include <Servo.h>
@@ -12,45 +14,47 @@
 #define SMOOTHED 1
 #define DEBUG 1
 #define TESTDOUBLES 0
-#define TESTTAIL 1
+#define TESTTAIL 0
 #define TESTRIGHTTAIL 0
+#define TESTDOWN 1
 
 Servo elevator;
 double acceleration, defaultAcceleration,thrust;
 double tailAcceleration, tailDefaulAcceleration, tailThrust;
 double targetAltitude, voltage, leftRange, rightRange, forwardRange, altitudeRange;
 
-static int elevatorPin = 4; // "staget" styres over denne
-static int motor1Pin = 9;   // H-bridge leg 1 (pin 2, 1A)
-static int motor2Pin = 11;  // H-bridge leg 2 (pin 7, 2A)
-static int enablePin = 10;  // H-bridge enable pin
-static int ledPin = 13;     // LED
-static int tailPin1 = 7;    // tailMotor leg 1
-static int tailPin2 = 6;    // talMotor leg 2
-static int enablePin2 = 5;  // enables side 2 of the H-bridge
+static int elevatorPin = 4;  // "staget" styres over denne
+static int motor1Pin   = 9;  // H-bridge leg 1 (pin 2, 1A)
+static int motor2Pin   = 11; // H-bridge leg 2 (pin 7, 2A)
+static int enablePin   = 10; // H-bridge enable pin
+static int ledPin      = 13; // LED
+static int tailPin1    = 7;  // tailMotor leg 1
+static int tailPin2    = 6;  // talMotor leg 2
+static int enablePin2  = 5;  // enables side 2 of the H-bridge
+
 // LED'S
 //int red = 2; //this sets the red led pin
 //int green = 8; //this sets the green led pin
 //int blue = 3; //this sets the blue led pin
 
-//range sensorer:
-static int altitudePin = A0; // HIGHT - sensor input
-static int rightRangePin = A1;
-static int leftRangePin = A2;
+//range sensors
+static int altitudePin     = A0;
+static int rightRangePin   = A1;
+static int leftRangePin    = A2;
 static int forwardRangePin = A3;
 
-//kompass setup:
+//compass setup
 int HMC6352SlaveAddress = 0x42; 
 
-//kompass I2C variabler
+//compass I2C variables
 int HMC6352ReadAddress = 0x41; //"A" in hex, A command is: 
 int headingValue; //kompass kurs variabel
 
-//smoothing filter variabler
-int sensVal;           // for raw sensor values 
-float filterVal;       // this determines smoothness  - .0001 is max  1 is off (no smoothing)
-float smoothedVal;     // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
-float smoothedVal2;   // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
+//smoothing filter variables
+int sensVal;        // for raw sensor values
+float filterVal;    // this determines smoothness  - .0001 is max  1 is off (no smoothing)
+float smoothedVal;  // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
+float smoothedVal2; // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 
 float heading, course;
 double d_heading;
@@ -148,6 +152,9 @@ void loop(){
     else if(TESTRIGHTTAIL == 1){
         testRightTail();
     }
+    else if(TESTDOWN ==1 ){
+        testDownAcceleration();
+    }
     else{
         heading = getHeading();
         readAllSensors();
@@ -214,17 +221,13 @@ void accelerateDown(double acceleration){
   }
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
-  elevator.write(122);                  // snur stag
-  delay(5);                             // venter på stag
+  elevator.write(122);                   // snur stag i riktig posisjon
+  delay(5);                             // venter litt på stag
   analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
-  
-  
-  
 }
 
 void defaultGlide(double acceleration){
-  
   if(DEBUG == 1){
       Serial.print("--- DefaultGlide with default acceleration: ");
       Serial.println(acceleration);
@@ -365,22 +368,47 @@ void testTailEngine(){
 }
 
 void testRightTail(){
+  turnRight(0);
+  delay(3000);
+  turnRight(20);
+  delay(3000);
+  turnRight(40);
+  delay(3000);
+  turnRight(60);
+  delay(3000);
+  turnRight(80);
+  delay(3000);
   turnRight(102);
-  delay(3000);
-  turnRight(120);
-  delay(3000);
-  turnRight(125);
-  delay(3000);
-  turnRight(126);
-  delay(3000);
-  turnRight(127);
-  delay(3000);
-  turnRight(128);
-  delay(3000);
-  turnRight(129);
   delay(3000);
   turnRight(130);
   delay(3000);
+  turnRight(180);
+  delay(3000);
+  turnRight(220);
+  delay(3000);
   turnRight(255);
   delay(3000);
+}
+
+void testDownAcceleration(){
+    accelerateDown(0);
+    delay(3000);
+    accelerateDown(20);
+    delay(3000);
+    accelerateDown(40);
+    delay(3000);
+    accelerateDown(60);
+    delay(3000);
+    accelerateDown(80);
+    delay(3000);
+    accelerateDown(102);
+    delay(3000);
+    accelerateDown(130);
+    delay(3000);
+    accelerateDown(180);
+    delay(3000);
+    accelerateDown(220);
+    delay(3000);
+    accelerateDown(255);
+    delay(3000);
 }
