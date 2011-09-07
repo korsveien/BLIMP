@@ -49,30 +49,30 @@ double d_heading;
 PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); //kall på PID biblioteket med verdier
 
 void setup() {
-Serial.begin(9600); //skjermutskrift på
+    Serial.begin(9600); //skjermutskrift på
 
-altitudePID.SetMode(AUTOMATIC);
-altitudePID.SetOutputLimits(-255, 255); 
-altitudePID.SetSampleTime(5);
+    altitudePID.SetMode(AUTOMATIC);
+    altitudePID.SetOutputLimits(-255, 255); 
+    altitudePID.SetSampleTime(5);
 
-//enabling all motorpins
-pinMode(motor1Pin, OUTPUT); 
-pinMode(motor2Pin, OUTPUT); 
-pinMode(enablePin, OUTPUT);
-pinMode(enablePin2, OUTPUT);
-pinMode(tailPin1, OUTPUT);
-pinMode(tailPin2, OUTPUT);
-pinMode(ledPin, OUTPUT);
-digitalWrite(enablePin, HIGH);  //fire up H-bridge
-digitalWrite(enablePin2, HIGH); // fire up H-bridge
-elevator.attach(elevatorPin); // binder servo-bibl til staget
+    //enabling all motorpins
+    pinMode(motor1Pin, OUTPUT); 
+    pinMode(motor2Pin, OUTPUT); 
+    pinMode(enablePin, OUTPUT);
+    pinMode(enablePin2, OUTPUT);
+    pinMode(tailPin1, OUTPUT);
+    pinMode(tailPin2, OUTPUT);
+    pinMode(ledPin, OUTPUT);
+    digitalWrite(enablePin, HIGH);  //fire up H-bridge
+    digitalWrite(enablePin2, HIGH); // fire up H-bridge
+    elevator.attach(elevatorPin); // binder servo-bibl til staget
 
-//kompass start:
-HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
-Wire.begin();
+    //kompass start:
+    HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
+    Wire.begin();
 
-targetAltitude = 200;
-filterVal = 0.9;
+    targetAltitude = 200;
+    filterVal = 0.9;
 }
 
 void printHeading(){
