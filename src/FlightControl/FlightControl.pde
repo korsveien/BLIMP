@@ -102,7 +102,7 @@ void printAltitude(){
 
 void printAcceleration(){
     Serial.print("--- ACCELERATION: ");
-    Serial.print(acceleration);
+    Serial.println(acceleration);
 }
 
 void readAllSensors(){
