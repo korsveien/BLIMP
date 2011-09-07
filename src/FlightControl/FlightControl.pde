@@ -2,6 +2,10 @@
 #include <Servo.h>
 #include <Wire.h>
 
+#define SMOOTHED 1
+#define DEBUG 1
+
+
 Servo elevator;
 int currentHight;
 double acceleration, defaultAcceleration,thrust;
@@ -77,61 +81,65 @@ void printHeading(){
     Serial.println(heading);
 }
 
+void printAltitude(){
+    Serial.print("--- ALTITUDE: ");
+    Serial.println(altitudeRange);
+}
+
+void printAcceleration(){
+    Serial.print("--- ACCELERATION: ");
+    Serial.print(acceleration);
+}
 
 void loop(){ 
-  //henter og printer kompassinfo
-  heading = getHeading();
+    //henter og printer kompassinfo
+    heading = getHeading();
 
-  printHeading();
-    
-   // leser avstandssensorer
-  altitudeRange = analogRead(leftRangePin);
-  leftRange = analogRead(leftRangePin);
-  rightRange = analogRead(rightRangePin);
-  forwardRange = analogRead(forwardRangePin);
-  
-  // smooth out sensor readings
-  smooth(altitudeRange, filterVal, altitudeRange);
-  smooth(leftRange, filterVal, leftRange);
-  smooth(rightRange, filterVal, rightRange);
-  smooth(forwardRange, filterVal, forwardRange);
- 
-  altitudePID.Compute();  //kjører PID for høyde
-  
-  
-  //Skriver høyde sensor info til skjerm
-  Serial.print("--- HIGHT Sensor reading is: ");
-  Serial.println(altitudeRange);
-  //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
-  Serial.print(acceleration);
-  
-  //batteryMonitor();
-  
-  
-  if(acceleration < 0){
-    
-    thrust = (-acceleration);
-  }
-  else{
-    
-    thrust = acceleration;
-    
-  }
-  
-  //if we are below target go up, if not go down
-  if(acceleration > 65
-  ){
-    accelerateUp(thrust);
-  }
-  else if(acceleration < - 65) {
-    
-    
-    
-    accelerateDown(thrust);
-  }
-  
-  else { defaultGlide(120);
-  }
+    // leser avstandssensorer
+    altitudeRange = analogRead(leftRangePin);
+    leftRange     = analogRead(leftRangePin);
+    rightRange    = analogRead(rightRangePin);
+    forwardRange  = analogRead(forwardRangePin);
+
+    // smooth out sensor readings
+    if(SMOOTHED == 1){
+        smooth(altitudeRange, filterVal, altitudeRange);
+        smooth(leftRange, filterVal, leftRange);
+        smooth(rightRange, filterVal, rightRange);
+        smooth(forwardRange, filterVal, forwardRange);
+    }
+
+    altitudePID.Compute();  //kjører PID for høyde
+
+    //Skriver høyde sensor info til skjerm
+    //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
+
+    if(DEBUG == 1){
+        printHeading();
+        printAltitude();
+        printAcceleration();
+    }
+    //batteryMonitor();
+
+    if(acceleration < 0){
+
+        thrust = (-acceleration);
+    }
+    else{
+
+        thrust = acceleration;
+    }
+
+    //if we are below target go up, if not go down
+    if(acceleration > 65){
+        accelerateUp(thrust);
+    }
+    else if(acceleration < - 65) {
+        accelerateDown(thrust);
+    }
+    else { 
+        defaultGlide(120);
+    }
     
 }
 //deadspot ca. mellom 84-102
