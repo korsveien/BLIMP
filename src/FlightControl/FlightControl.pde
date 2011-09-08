@@ -18,6 +18,7 @@
 #define TESTRIGHTTAIL 0
 #define TESTDOWN 0
 #define BATTERYMONITOR 0
+#define MULTIPIDTEST 1
 
 Servo elevator;
 double acceleration, defaultAcceleration,thrust;
@@ -34,9 +35,9 @@ static int tailPin2    = 6;  // talMotor leg 2
 static int enablePin2  = 5;  // enables side 2 of the H-bridge
 
 // LED'S
-//int red = 2; //this sets the red led pin
-//int green = 8; //this sets the green led pin
-//int blue = 3; //this sets the blue led pin
+int red = 2; //this sets the red led pin
+int green = 8; //this sets the green led pin
+int blue = 3; //this sets the blue led pin
 
 //range sensors
 static int altitudePin     = A0;
@@ -65,7 +66,11 @@ double d_heading, course;
 // Output   : The variable that will be adjusted by the PID(double)
 // Setpoint : The value we want to Input to maintain(double)
 PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); 
-PID tailPID(&d_heading, &tailAcceleration, &course,4,0,0,DIRECT); 
+/*PID tailPID(&d_heading, &tailAcceleration, &course,4,0,0,DIRECT); */
+
+//for testing multiple PID's using forward sensor
+double targetTestRange = 50.0;
+PID testPID(&forwardRange, &tailAcceleration, &targetTestRange,4,0,0,DIRECT);
 
 void setup() {
     Serial.begin(9600); //skjermutskrift på
@@ -74,9 +79,13 @@ void setup() {
     altitudePID.SetOutputLimits(-255, 255); 
     altitudePID.SetSampleTime(5);
 
-    tailPID.SetMode(AUTOMATIC);
-    tailPID.SetOutputLimits(-255, 255); 
-    tailPID.SetSampleTime(5);
+    /*tailPID.SetMode(AUTOMATIC);*/
+    /*tailPID.SetOutputLimits(-255, 255); */
+    /*tailPID.SetSampleTime(5);*/
+
+    testPID.SetMode(AUTOMATIC);
+    testPID.SetOutputLimits(-255, 255); 
+    testPID.SetSampleTime(5);
 
     //enabling all motorpins
     pinMode(motor1Pin, OUTPUT); 
@@ -98,6 +107,12 @@ void setup() {
 
     targetAltitude = 50;
     filterVal = 0.9;
+}
+
+
+void printTailAcceleration(){
+    Serial.print("--- TAILACCELERATION: ");
+    Serial.println(tailAcceleration);
 }
 
 void printHeading(){
@@ -151,6 +166,19 @@ void accelerate(){
     }
 }
 
+
+void turn(){
+    if(tailAcceleration < 0){
+
+        tailThrust = (-tailAcceleration);
+        turnLeft(tailThrust);
+    }
+    else{
+        tailThrust = tailAcceleration;
+        turnRight(tailThrust);
+    }
+}
+
 void loop(){ 
     if(BATTERYMONITOR == 1){
         batteryMonitor();
@@ -178,13 +206,17 @@ void loop(){
         }
 
         altitudePID.Compute();
-        tailPID.Compute();
+        /*tailPID.Compute();*/
+        testPID.Compute();
         accelerate();
+        turn();
 
         if(DEBUG == 1){
             printHeading();
+            printTailAcceleration();
             printAltitude();
             printAcceleration();
+            printTailAcceleration();
         }
     }
 }
