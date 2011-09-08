@@ -17,7 +17,7 @@
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
 #define TESTDOWN 0
-#define BATTERYMONITOR 1
+#define BATTERYMONITOR 0
 
 Servo elevator;
 double acceleration, defaultAcceleration,thrust;
@@ -110,7 +110,18 @@ void setup() {
     filterVal = 0.9;
 }
 
-printVoltage(){
+void printRanges(){
+    Serial.print("--- FORWARD RANGE: ");
+    Serial.println(forwardRange);
+    Serial.print("--- RIGHT RANGE: ");
+    Serial.println(rightRange);
+    Serial.print("--- LEFT RANGE: ");
+    Serial.println(leftRange);
+    Serial.print("--- ALTITUDE RANGE: ");
+    Serial.println(altitudeRange);
+}
+
+void printVoltage(){
     Serial.print("--- VOLTAGE: ");
     Serial.println(voltage);
 }
@@ -126,7 +137,7 @@ void printHeading(){
 }
 
 void printAltitude(){
-    Serial.print("--- ALTITUDE: ");
+    Serial.print("--- ALTITUDE RANGE: ");
     Serial.println(altitudeRange);
 }
 
@@ -171,8 +182,20 @@ void accelerate(){
     }
 }
 
+void turnToCourse(double course){
+    if(tailAcceleration < 0){
 
-void turn(double course){
+        tailThrust = (-tailAcceleration);
+        turnLeft(tailThrust);
+    }
+    else{
+        tailThrust = tailAcceleration;
+        turnRight(tailThrust);
+    }
+}
+
+void turn(){
+    printRanges();
     if(tailAcceleration < 0){
 
         tailThrust = (-tailAcceleration);
@@ -196,10 +219,10 @@ double detectCollision(){}
 double stakeOutCourse(){}
 
 void loop(){ 
+
     if(BATTERYMONITOR == 1){
         batteryMonitor();
     }
-
     if(TESTDOUBLES == 1){
         testDoubleEngines();
     }
@@ -226,9 +249,10 @@ void loop(){
         testPID.Compute();
         accelerate();
         course = detectCollision();
+        turn();
 
         if(course != currentCourse){
-            turn(course);
+            turnToCourse(course);
         }
 
         if(DEBUG == 1){
@@ -307,12 +331,15 @@ void defaultGlide(double acceleration){
 }
 
 // emergency landing
-void land(double acceleration) {
+void land() {
     while(1){
+        Serial.println("--- EMERGENCY LANDING!");
         accelerateDown(255);
     }
 }
 
+//checks the mV of the battery, performs emergency landing if voltage is
+//too low
 void batteryMonitor () {
   
     double reading = (double) analogRead(7); //tilpass til riktig port
@@ -320,21 +347,19 @@ void batteryMonitor () {
     voltage = reading * 5.0;
     ; //regner ut spenning
     
-    if (voltage > 3990 ) {
+    if(DEBUG == 1){
+        printVoltage();
+    }
+    if (voltage > 1500) {
       batteryLed(green, 150);
       
-    } else if (voltage > 3500
-    ) {
+    } else if (voltage > 1000) {
        batteryLed(blue, 150);
        
     } else {
         batteryLed(red, 200);
         land();
     }        
-    if(DEBUG == 1){
-        printVoltage();
-    }
-    return voltage; //returnerer spenning til batteriet
 }
 
 void batteryLed(int colour, int strength) {
