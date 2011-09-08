@@ -17,6 +17,7 @@
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
 #define TESTDOWN 0
+#define BATTERYMONITOR 0
 
 Servo elevator;
 double acceleration, defaultAcceleration,thrust;
@@ -72,6 +73,10 @@ void setup() {
     altitudePID.SetMode(AUTOMATIC);
     altitudePID.SetOutputLimits(-255, 255); 
     altitudePID.SetSampleTime(5);
+
+    tailPID.SetMode(AUTOMATIC);
+    tailPID.SetOutputLimits(-255, 255); 
+    tailPID.SetSampleTime(5);
 
     //enabling all motorpins
     pinMode(motor1Pin, OUTPUT); 
@@ -146,11 +151,15 @@ void accelerate(){
     }
 }
 
-
 void loop(){ 
+    if(BATTERYMONITOR == 1){
+        batteryMonitor();
+    }
+
     if(TESTDOUBLES == 1){
         testDoubleEngines();
     }
+
     else if(TESTTAIL == 1){
         testTailEngine();
     }
@@ -169,18 +178,16 @@ void loop(){
         }
 
         altitudePID.Compute();
+        tailPID.Compute();
+        accelerate();
 
-        //delay(10); //bremser koden/utskrift? Mister respons men mer stabil oppførel? Jeg syntes vi bør glatte verdiene vi får inn f.eks fjerne verdier 
         if(DEBUG == 1){
             printHeading();
             printAltitude();
             printAcceleration();
         }
-        accelerate();
-        //batteryMonitor();
     }
 }
-//deadspot ca. mellom 84-102
 
 void turnLeft(double acceleration) {
   if(DEBUG == 1){
@@ -261,7 +268,6 @@ void land(double acceleration) {
   digitalWrite(motor1Pin, LOW);
 }
 
-/*
 int batteryMonitor () {
   
     int reading = analogRead(3); //tilpass til riktig port
@@ -284,7 +290,6 @@ int batteryMonitor () {
 
 }
 
-*/
 void batteryLed(int colour, int strength) {
     analogWrite(colour, 200);
 }
