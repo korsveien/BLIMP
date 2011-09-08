@@ -25,6 +25,9 @@ double tailAcceleration, tailDefaulAcceleration, tailThrust;
 double targetAltitude, voltage, leftRange, rightRange, forwardRange, altitudeRange;
 double minLeftRange, minRightRange, minFowardRange, MinAltitudeRange;
 
+float heading;
+double d_heading, course, currentCourse;
+
 static int elevatorPin = 4;  // "staget" styres over denne
 static int motor1Pin   = 9;  // H-bridge leg 1 (pin 2, 1A)
 static int motor2Pin   = 11; // H-bridge leg 2 (pin 7, 2A)
@@ -58,8 +61,6 @@ float filterVal;    // this determines smoothness  - .0001 is max  1 is off (no 
 float smoothedVal;  // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
 float smoothedVal2; // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 
-float heading;
-double d_heading, course;
 
 // PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, Direction)
 // Input    : Variable we are trying to control(double)
@@ -167,7 +168,7 @@ void accelerate(){
 }
 
 
-void turn(){
+void turn(double course){
     if(tailAcceleration < 0){
 
         tailThrust = (-tailAcceleration);
