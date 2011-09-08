@@ -23,6 +23,7 @@ Servo elevator;
 double acceleration, defaultAcceleration,thrust;
 double tailAcceleration, tailDefaulAcceleration, tailThrust;
 double targetAltitude, voltage, leftRange, rightRange, forwardRange, altitudeRange;
+double minLeftRange, minRightRange, minFowardRange, MinAltitudeRange;
 
 static int elevatorPin = 4;  // "staget" styres over denne
 static int motor1Pin   = 9;  // H-bridge leg 1 (pin 2, 1A)
@@ -178,6 +179,17 @@ void turn(){
     }
 }
 
+/*XXX:blimp is on collisoncourse forward. We then check right and left*/
+/*sensor and determine which has the most available space for*/
+/*maneuvering. We then add or subtract degrees to the current course*/
+/*depending on which way we want to turn*/
+
+//return 0 if no collision
+double detectCollision(){}
+
+//return new course based on collision info
+double stakeOutCourse(){}
+
 void loop(){ 
     if(BATTERYMONITOR == 1){
         batteryMonitor();
@@ -208,7 +220,11 @@ void loop(){
         /*tailPID.Compute();*/
         testPID.Compute();
         accelerate();
-        turn();
+        course = detectCollision();
+
+        if(course != currentCourse){
+            turn(course);
+        }
 
         if(DEBUG == 1){
             printHeading();
@@ -375,8 +391,8 @@ void testDoubleEngines(){
   defaultGlide(102);
   delay(3000);
   
-  accelerateUp(180);
   delay(3000);
+  accelerateUp(180);
   accelerateDown(180);
   delay(3000);
   defaultGlide(180);
