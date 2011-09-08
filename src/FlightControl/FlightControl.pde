@@ -18,7 +18,6 @@
 #define TESTRIGHTTAIL 0
 #define TESTDOWN 0
 #define BATTERYMONITOR 0
-#define MULTIPIDTEST 1
 
 Servo elevator;
 double acceleration, defaultAcceleration,thrust;
