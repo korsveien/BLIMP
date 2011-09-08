@@ -110,6 +110,10 @@ void setup() {
     filterVal = 0.9;
 }
 
+printVoltage(){
+    Serial.print("--- VOLTAGE: ");
+    Serial.println(voltage);
+}
 
 void printTailAcceleration(){
     Serial.print("--- TAILACCELERATION: ");
@@ -309,11 +313,11 @@ void land(double acceleration) {
     }
 }
 
-int batteryMonitor () {
+void batteryMonitor () {
   
-    int reading = analogRead(7); //tilpass til riktig port
+    double reading = (double) analogRead(7); //tilpass til riktig port
     
-    voltage = reading * 5,0;
+    voltage = reading * 5.0;
     ; //regner ut spenning
     
     if (voltage > 3990 ) {
@@ -327,8 +331,10 @@ int batteryMonitor () {
         batteryLed(red, 200);
         land();
     }        
+    if(DEBUG == 1){
+        printVoltage();
+    }
     return voltage; //returnerer spenning til batteriet
-
 }
 
 void batteryLed(int colour, int strength) {
