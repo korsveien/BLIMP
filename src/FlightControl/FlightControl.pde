@@ -17,7 +17,7 @@
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
 #define TESTDOWN 0
-#define BATTERYMONITOR 0
+#define BATTERYMONITOR 1
 
 Servo elevator;
 double acceleration, defaultAcceleration,thrust;
@@ -302,23 +302,16 @@ void defaultGlide(double acceleration){
   //delay(200); //legger inn et delay for å vente å se om fremover aksen stabiliserer høyden?
 }
 
+// emergency landing
 void land(double acceleration) {
-   
-  if(DEBUG == 1){
-      Serial.print("--- LANDING: ");
-      Serial.println(acceleration);
-  }
-  analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
-  digitalWrite(motor1Pin, LOW);
-  elevator.write(122);                  // snur stag
-  delay(5);                             // venter på stag
-  analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
-  digitalWrite(motor1Pin, LOW);
+    while(1){
+        accelerateDown(255);
+    }
 }
 
 int batteryMonitor () {
   
-    int reading = analogRead(3); //tilpass til riktig port
+    int reading = analogRead(7); //tilpass til riktig port
     
     voltage = reading * 5,0;
     ; //regner ut spenning
@@ -332,7 +325,7 @@ int batteryMonitor () {
        
     } else {
         batteryLed(red, 200);
-        // void landing();
+        land();
     }        
     return voltage; //returnerer spenning til batteriet
 
