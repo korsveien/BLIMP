@@ -207,12 +207,12 @@ void turn(){
     }
 }
 
-/*XXX:blimp is on collisoncourse forward. We then check right and left*/
+/*TODO:blimp is on collison course in forward direction. We then check right and left*/
 /*sensor and determine which has the most available space for*/
 /*maneuvering. We then add or subtract degrees to the current course*/
 /*depending on which way we want to turn*/
 
-//return 0 if no collision
+//return 0 if no collision?
 double detectCollision(){}
 
 //return new course based on collision info
