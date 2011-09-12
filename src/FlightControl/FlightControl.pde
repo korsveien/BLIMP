@@ -65,32 +65,45 @@ float filterVal;    // this determines smoothness  - .0001 is max  1 is off (no 
 float smoothedVal;  // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
 float smoothedVal2; // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 
+enum sensor{
+    FORWARD_SENSOR,
+    ALTITUDE_SENSOR,
+    LEFT_SENSOR,
+    RIGHT_SENSOR,
+};
+
+static double MINRANGE = 200.0;
+static int NUMBEROFSENSORS = 4;
+double sensorArray[] = {forwardRange, altitudeRange, leftRange, rightRange};
+sensor sensorWithMaxValue, sensorWithMinValue;
+
 
 // PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, Direction)
 // Input    : Variable we are trying to control(double)
 // Output   : The variable that will be adjusted by the PID(double)
 // Setpoint : The value we want to Input to maintain(double)
 PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); 
-/*PID tailPID(&d_heading, &tailAcceleration, &course,4,0,0,DIRECT); */
+PID tailPID(&d_heading, &tailAcceleration, &course,4,0,0,DIRECT); 
 
 //for testing multiple PID's using forward sensor
-double targetTestRange = 50.0;
-PID testPID(&forwardRange, &tailAcceleration, &targetTestRange,4,0,0,DIRECT);
+/*double targetTestRange = 50.0;*/
+/*PID testPID(&forwardRange, &tailAcceleration, &targetTestRange,4,0,0,DIRECT);*/
 
 void setup() {
+
     Serial.begin(9600); //skjermutskrift på
 
     altitudePID.SetMode(AUTOMATIC);
     altitudePID.SetOutputLimits(-255, 255); 
     altitudePID.SetSampleTime(5);
 
-    /*tailPID.SetMode(AUTOMATIC);*/
-    /*tailPID.SetOutputLimits(-255, 255); */
-    /*tailPID.SetSampleTime(5);*/
+    tailPID.SetMode(AUTOMATIC);
+    tailPID.SetOutputLimits(-255, 255); 
+    tailPID.SetSampleTime(5);
 
-    testPID.SetMode(AUTOMATIC);
-    testPID.SetOutputLimits(-255, 255); 
-    testPID.SetSampleTime(5);
+    /*testPID.SetMode(AUTOMATIC);*/
+    /*testPID.SetOutputLimits(-255, 255); */
+    /*testPID.SetSampleTime(5);*/
 
     //enabling all motorpins
     pinMode(motor1Pin, OUTPUT); 
@@ -166,7 +179,6 @@ void smoothInput(){
 
 void accelerate(){
     if(acceleration < 0){
-
         thrust = (-acceleration);
     }
     else{
@@ -216,11 +228,53 @@ void turn(){
 /*maneuvering. We then add or subtract degrees to the current course*/
 /*depending on which way we want to turn*/
 
-//return 0 if no collision?
-double detectCollision(){}
+//Return new course if collision is detected
+//Leaves the course unaltered if no collision is detected
+double detectCollision()
+{
+    double smallestRange = smallestValue();
+    if(smallestRange < MINRANGE){
+        stakeOutCourse();
+    }
+}
 
-//return new course based on collision info
-double stakeOutCourse(){}
+double smallestValue(){
+    int i;
+    double smallestValue = -1;
+    for(i = 0; i < NUMBEROFSENSORS; i++){
+        if (sensorArray[i] < smallestValue){
+            smallestValue = sensorArray[i];
+        }
+    }
+    switch(i){
+        case 0: sensorWithMinValue = FORWARD_SENSOR; break;
+        case 1: sensorWithMinValue = FORWARD_SENSOR; break;
+        case 2: sensorWithMinValue = LEFT_SENSOR; break;
+        case 3: sensorWithMinValue = RIGHT_SENSOR; break;
+    }
+    return smallestValue;
+}
+
+double largestValue(){
+    int i;
+    double largestValue = -1;
+    for(i = 0; i < NUMBEROFSENSORS; i++){
+        if (sensorArray[i] > largestValue){
+            largestValue = sensorArray[i];
+        }
+    }
+    switch(i){
+        case 0: sensorWithMaxValue = FORWARD_SENSOR; break;
+        case 1: sensorWithMaxValue = FORWARD_SENSOR; break;
+        case 2: sensorWithMaxValue = LEFT_SENSOR; break;
+        case 3: sensorWithMaxValue = RIGHT_SENSOR; break;
+    }
+    return largestValue;
+}
+        
+// return new course based on collision info
+// param information:
+double stakeOutCourse(){return 0.0;}
 
 void loop(){ 
 
@@ -249,10 +303,10 @@ void loop(){
         }
 
         altitudePID.Compute();
-        /*tailPID.Compute();*/
-        testPID.Compute();
-        accelerate();
+        tailPID.Compute();
+        /*testPID.Compute();*/
         course = detectCollision();
+        accelerate();
         turn();
 
         if(course != currentCourse){
