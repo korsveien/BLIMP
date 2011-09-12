@@ -1,11 +1,15 @@
-/*******************************************************************************
-* Authors: Fredrik Cappelen and Nils Peder Korsveien                           *
-*                                                                              *
-* SOURCE CODE AND DATA SHEETS                                                  *
-* H-bridge data sheet : www.sparkfun.com/datasheets/IC/SN754410.pdf            *
-* H-bridge how-to     : http://itp.nyu.edu/physcomp/Labs/DCMotorControl#toc8   *
-* PID-library         : http://arduino.cc/playground/Code/PIDLibrary           *
-********************************************************************************/
+/****************************************************************************************
+* Authors: Fredrik Cappelen and Nils Peder Korsveien                                    *
+* University of Oslo 2011
+*                                                                                       *
+* SOURCE CODE AND DATA SHEETS                                                           *
+* H-bridge data sheet : www.sparkfun.com/datasheets/IC/SN754410.pdf                     *
+* H-bridge how-to     : http://itp.nyu.edu/physcomp/Labs/DCMotorControl#toc8            *
+* PID-library         : http://arduino.cc/playground/Code/PIDLibrary                    *
+* Compass product page: http://www.robonor.no/mag/default/compass-module-hmc6352.html   *
+* Compass data sheet  : http://www.sparkfun.com/datasheets/Components/HMC6352.pdf       *
+* Compass library     : http://mbed.org/cookbook/HMC6352-Digital-Compass                *
+*****************************************************************************************/
 
 #include <PID_v1.h>
 #include <Servo.h>
