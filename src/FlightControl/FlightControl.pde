@@ -72,6 +72,7 @@ enum sensor{
     RIGHT_SENSOR,
 };
 
+// variables used for collision detection
 static double MINRANGE = 200.0;
 static int NUMBEROFSENSORS = 4;
 double sensorArray[] = {forwardRange, altitudeRange, leftRange, rightRange};
@@ -238,6 +239,8 @@ double detectCollision()
     }
 }
 
+//returns the smallest value in sensorArray, and sets the corresponding
+//sensor enum so we know which sensor have this value
 double smallestValue(){
     int i;
     double smallestValue = -1;
@@ -255,6 +258,8 @@ double smallestValue(){
     return smallestValue;
 }
 
+//returns the largest value in sensorArray, and sets the corresponding
+//sensor enum so we know which sensor have this value
 double largestValue(){
     int i;
     double largestValue = -1;
@@ -274,6 +279,7 @@ double largestValue(){
         
 // return new course based on collision info
 // param information:
+//TODO
 double stakeOutCourse(){return 0.0;}
 
 void loop(){ 
