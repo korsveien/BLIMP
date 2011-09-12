@@ -47,7 +47,7 @@ int green = 8; //this sets the green led pin
 int blue = 3; //this sets the blue led pin
 
 //range sensors
-static int altitudePin     = A0;
+static int altitudeRangePin     = A0;
 static int rightRangePin   = A1;
 static int leftRangePin    = A2;
 static int forwardRangePin = A3;
@@ -164,7 +164,7 @@ void printAcceleration(){
 }
 
 void readAllSensors(){
-    altitudeRange = analogRead(leftRangePin);
+    altitudeRange = analogRead(altitudeRangePin);
     leftRange     = analogRead(leftRangePin);
     rightRange    = analogRead(rightRangePin);
     forwardRange  = analogRead(forwardRangePin);
