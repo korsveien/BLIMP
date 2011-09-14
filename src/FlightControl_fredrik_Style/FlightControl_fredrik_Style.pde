@@ -31,6 +31,9 @@ double minLeftRange, minRightRange, minForwardRange, MinAltitudeRange;
 
 float heading;
 double d_heading, course, currentCourse;
+boolean colisionDetected = false;
+
+int colisionType; //1 = foran, 2 = venstre, 3 = høyre;
 
 static int elevatorPin = 4;  // "staget" styres over denne
 static int motor1Pin   = 9;  // H-bridge leg 1 (pin 2, 1A)
@@ -65,9 +68,18 @@ float filterVal;    // this determines smoothness  - .0001 is max  1 is off (no 
 float smoothedVal;  // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
 float smoothedVal2; // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 
-// variable used for collision detection
+enum sensor{
+    FORWARD_SENSOR,
+    ALTITUDE_SENSOR,
+    LEFT_SENSOR,
+    RIGHT_SENSOR,
+};
+
+// variables used for collision detection
 static double MINRANGE = 200.0;
-boolean collisionDetected = false;
+static int NUMBEROFSENSORS = 4;
+double sensorArray[] = {forwardRange, altitudeRange, leftRange, rightRange};
+sensor sensorWithMaxValue, sensorWithMinValue;
 
 
 // PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, Direction)
@@ -122,12 +134,7 @@ void setup() {
     minRightRange = 50;
     minLeftRange = 50;
     
-    filterVal = 0.9;
-}
-
-void printCourse(){
-    Serial.print("--- COURSE: ");
-    Serial.println(course);
+    filterVal = 0.95;
 }
 
 void printRanges(){
@@ -154,6 +161,26 @@ void printTailAcceleration(){
 void printHeading(){
     Serial.print("--- HEADING: ");
     Serial.println(heading);
+}
+
+void printForwardRange() {
+  Serial.print("--- FORWARD RANGE: ");
+  Serial.println(forwardRange);
+}
+
+void printLeftRange() {
+  Serial.print("--- LEFT RANGE: ");
+  Serial.println(leftRange);
+}
+
+void printCourse() {
+  Serial.print("--- COURSE: ");
+  Serial.println(course);
+}
+
+void printRightRange() {
+  Serial.print("--- RIGHT RANGE: ");
+  Serial.println(rightRange);
 }
 
 void printAltitude(){
@@ -185,6 +212,7 @@ void accelerate(){
         thrust = (-acceleration);
     }
     else{
+
         thrust = acceleration;
     }
 
@@ -199,9 +227,21 @@ void accelerate(){
         defaultGlide(120);
     }
 }
-
-//FIXME: course oppdateres ikke her, men i PIDen
+//Denne er helt lik turn()
 void turnToCourse(double course){
+    if(tailAcceleration < 0){
+
+        tailThrust = (-tailAcceleration);
+        turnLeft(tailThrust);
+    }
+    else{
+        tailThrust = tailAcceleration;
+        turnRight(tailThrust);
+    }
+}
+//denne metoden er helt lik turnToCourse?!
+void turn(){
+    printRanges();
     if(tailAcceleration < 0){
 
         tailThrust = (-tailAcceleration);
@@ -224,7 +264,7 @@ void turnToCourse(double course){
 {
   // if colliton is up front:
     if (forwardRange < minForwardRange) {
-      collisionDetected = true;
+      colisionDetected = true;
       Serial.print("Kolisjon forutt, ny kurs:");
         //check wich way to turn:
         if (leftRange > rightRange) { //turn LEFT
@@ -255,7 +295,7 @@ void turnToCourse(double course){
         
     if (leftRange < minLeftRange) {
          Serial.print("Kolisjon oppdaget til venstre!");
-         collisionDetected = true; // sørger for at vi ikke oppdager samme kolisjon mange ganger
+         colisionDetected = true; // sørger for at vi ikke oppdager samme kolisjon mange ganger
       course = d_heading - 70;
       
        if (course > 360) {
@@ -269,7 +309,7 @@ void turnToCourse(double course){
     }
     //kolisjon oppdaget til høyre:
     if (rightRange < minRightRange) { 
-          collisionDetected = true; //se opp
+          colisionDetected = true; //se opp
          Serial.print("Kolisjon oppdaget til hoyre!"); 
           //turn left with X degrees
           course = d_heading - 70;
@@ -286,8 +326,56 @@ void turnToCourse(double course){
   
     return false;
 }
+        
+    
+        
           
+  //  double smallestRange = smallestValue();
+  // if(smallestRange < MINRANGE){
+  //      stakeOutCourse();
+    
+
+
+//returns the smallest value in sensorArray, and sets the corresponding
+//sensor enum so we know which sensor have this value
+double smallestValue(){
+    int i;
+    double smallestValue = -1;
+    for(i = 0; i < NUMBEROFSENSORS; i++){
+        if (sensorArray[i] < smallestValue){
+            smallestValue = sensorArray[i];
+        }
+    }
+    switch(i){
+        case 0: sensorWithMinValue = FORWARD_SENSOR; break;
+        case 1: sensorWithMinValue = FORWARD_SENSOR; break;
+        case 2: sensorWithMinValue = LEFT_SENSOR; break;
+        case 3: sensorWithMinValue = RIGHT_SENSOR; break;
+    }
+    return smallestValue;
+}
+
+//returns the largest value in sensorArray, and sets the corresponding
+//sensor enum so we know which sensor have this value
+double largestValue(){
+    int i;
+    double largestValue = -1;
+    for(i = 0; i < NUMBEROFSENSORS; i++){
+        if (sensorArray[i] > largestValue){
+            largestValue = sensorArray[i];
+        }
+    }
+    switch(i){
+        case 0: sensorWithMaxValue = FORWARD_SENSOR; break;
+        case 1: sensorWithMaxValue = FORWARD_SENSOR; break;
+        case 2: sensorWithMaxValue = LEFT_SENSOR; break;
+        case 3: sensorWithMaxValue = RIGHT_SENSOR; break;
+    }
+    return largestValue;
+}
+        
 // return new course based on collision info
+// param information:
 //TODO
 double stakeOutCourse(){return 0.0;}
 
@@ -322,7 +410,7 @@ void loop(){
         altitudePID.Compute();
         tailPID.Compute();
         /*testPID.Compute();*/
-        if( collisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
+        if( colisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
           if (!detectCollision() ) { //setter ny kurs om en kolisjon oppda
          Serial.println("ingen kollisjoner oppdaget"); //sjekker om vi kolliderer og oppdaterer kurs om nødvendig 
           }
@@ -331,17 +419,26 @@ void loop(){
         accelerate();              
         turnToCourse(course); //svinger med akselerasjon mot korrekt kurs.
          if (d_heading - course > -3 && d_heading - course < 3) {
-           collisionDetected = false;
+           colisionDetected = false;
            Serial.println("!!!! kolisjon avverget !!! ");
            Serial.println();
         
          }
+         
+
+   
+        
+                
 
         if(DEBUG == 1){
             printHeading();
             printCourse();
+            
+            printTailAcceleration();
             printAltitude();
-            printRanges();
+            printForwardRange();
+            printLeftRange();
+            printRightRange();
             printAcceleration();
             printTailAcceleration();
         }
