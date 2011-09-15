@@ -20,7 +20,7 @@
 #define TESTDOUBLES 0
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
-#define TESTDOWN 0
+#define TESTDOWN 1
 #define BATTERYMONITOR 0
 
 Servo elevator;
@@ -31,7 +31,9 @@ double minLeftRange, minRightRange, minForwardRange, MinAltitudeRange;
 
 float heading;
 double d_heading, course, currentCourse;
-boolean colisionDetected = false;
+boolean colisionDetected = false; //holder orden på om kollisjonen er oppdaget fra før
+double target = 0.00;
+double diff; // = course - d_heading;
 
 int colisionType; //1 = foran, 2 = venstre, 3 = høyre;
 
@@ -86,8 +88,8 @@ sensor sensorWithMaxValue, sensorWithMinValue;
 // Input    : Variable we are trying to control(double)
 // Output   : The variable that will be adjusted by the PID(double)
 // Setpoint : The value we want to Input to maintain(double)
-PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); 
-PID tailPID(&d_heading, &tailAcceleration, &course,4,0,0,DIRECT); 
+PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,6,0,0,DIRECT); 
+PID tailPID(&diff, &tailAcceleration, &target,6,0,0,DIRECT); 
 
 //for testing multiple PID's using forward sensor
 /*double targetTestRange = 50.0;*/
@@ -129,7 +131,7 @@ void setup() {
 
     //setter startverdier for avstandsbegrensninger og start kurs.
     course = 180;
-    targetAltitude = 50;
+    targetAltitude = 60;
     minForwardRange = 50;
     minRightRange = 50;
     minLeftRange = 50;
@@ -268,7 +270,7 @@ void turn(){
       Serial.print("Kolisjon forutt, ny kurs:");
         //check wich way to turn:
         if (leftRange > rightRange) { //turn LEFT
-          course = course - 180;
+          course = course - 165.00;
           if (course > 360) {
             course = course - 360;
           }
@@ -279,7 +281,7 @@ void turn(){
              return true;
  
         } else { //turn RIGHT
-          course = d_heading + 180,00;
+          course = d_heading + 165.00;
           // er kurs større enn 360, har vi gått rundt og 360 trekkes fra
           if (course > 360) {
             course = course - 360;
@@ -373,6 +375,15 @@ double largestValue(){
     }
     return largestValue;
 }
+
+void calculateDiff() {
+  
+  diff = course - d_heading;
+  if (diff > 180) {
+    diff = diff - 360;
+  } else if (diff < -180) {
+    diff = diff + 360;
+}
         
 // return new course based on collision info
 // param information:
@@ -397,28 +408,38 @@ void loop(){
     else if(TESTDOWN ==1 ){
         testDownAcceleration();
     }
-    else{
-        heading = getHeading();
-        d_heading = heading;
-        readAllSensors();
+    else {  //MAIN LOOP
+    
+        heading = getHeading(); //recieve heading from compass
+        d_heading = heading;    // convert float to double
+        if (course - d_heading > 180) {
+          d_heading = d_heading + 360;
+        } else if (course - d_heading < - 180) {
+          d_heading = d_heading - 360;
+        }
+    
+        calculateDiff();
+        
+        readAllSensors();      // check zonar sensors
 
-
-        if(SMOOTHED == 1){
+        if(SMOOTHED == 1){    //apply smoothing to sensors
             smoothInput();
         }
 
-        altitudePID.Compute();
-        tailPID.Compute();
+        altitudePID.Compute();  //calculate acceleration for main propellers
+        tailPID.Compute();      //calculate acceleration for tail propeller
         /*testPID.Compute();*/
-        if( colisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
-          if (!detectCollision() ) { //setter ny kurs om en kolisjon oppda
-         Serial.println("ingen kollisjoner oppdaget"); //sjekker om vi kolliderer og oppdaterer kurs om nødvendig 
+        
+        if( colisionDetected == false) { //if there is not allready a colision present:
+          if (!detectCollision() ) { // check for colisions and generate new course          
+           Serial.println("ingen kollisjoner oppdaget"); // If no colision is detected coast is clear.
           }
         }
-        Serial.println(abs(d_heading));
-        accelerate();              
+        
+        accelerate();        
         turnToCourse(course); //svinger med akselerasjon mot korrekt kurs.
-         if (d_heading - course > -3 && d_heading - course < 3) {
+        
+         if (d_heading - course > -3 && d_heading - course < 3) { //setter kolisjon til false hvis vi nå er på ca rett kurs
            colisionDetected = false;
            Serial.println("!!!! kolisjon avverget !!! ");
            Serial.println();
@@ -443,8 +464,7 @@ void loop(){
             printTailAcceleration();
         }
     }
-    
-    
+        
 }
 
 void turnLeft(double acceleration) {

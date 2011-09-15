@@ -31,6 +31,8 @@ double minLeftRange, minRightRange, minForwardRange, MinAltitudeRange;
 
 float heading;
 double d_heading, course, currentCourse;
+double target = 0; // target for compass diferanse
+double diff;      //  diff to target
 
 static int elevatorPin = 4;  // "staget" styres over denne
 static int motor1Pin   = 9;  // H-bridge leg 1 (pin 2, 1A)
@@ -62,9 +64,12 @@ int headingValue; //kompass kurs variabel
 //smoothing filter variables
 int sensVal;        // for raw sensor values
 float filterVal;    // this determines smoothness  - .0001 is max  1 is off (no smoothing)
-float smoothedVal;  // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
-float smoothedVal2; // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
-
+float filterCollisionVal;
+float smoothedAltitudeRange;  // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
+float smoothedForwardRange;
+float smoothedLeftRange;
+float smoothedRightRange;// this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
+double d_smoothedAltitudeRange;
 // variable used for collision detection
 static double MINRANGE = 200.0;
 boolean collisionDetected = false;
@@ -74,8 +79,8 @@ boolean collisionDetected = false;
 // Input    : Variable we are trying to control(double)
 // Output   : The variable that will be adjusted by the PID(double)
 // Setpoint : The value we want to Input to maintain(double)
-PID altitudePID(&altitudeRange, &acceleration, &targetAltitude,4,0,0,DIRECT); 
-PID tailPID(&d_heading, &tailAcceleration, &course,4,0,0,DIRECT); 
+PID altitudePID(&d_smoothedAltitudeRange, &acceleration, &targetAltitude,4,0,0.2,DIRECT); 
+PID tailPID(&diff, &tailAcceleration, &target,0.8,0,0,DIRECT); 
 
 //for testing multiple PID's using forward sensor
 /*double targetTestRange = 50.0;*/
@@ -90,7 +95,7 @@ void setup() {
     altitudePID.SetSampleTime(5);
 
     tailPID.SetMode(AUTOMATIC);
-    tailPID.SetOutputLimits(-255, 255); 
+    tailPID.SetOutputLimits(-100, 150); 
     tailPID.SetSampleTime(5);
 
     /*testPID.SetMode(AUTOMATIC);*/
@@ -114,31 +119,55 @@ void setup() {
     //kompass start:
     HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
     Wire.begin();
+    
+    readAllSensors();
 
     //setter startverdier for avstandsbegrensninger og start kurs.
     course = 180;
-    targetAltitude = 50;
-    minForwardRange = 50;
-    minRightRange = 50;
-    minLeftRange = 50;
+    targetAltitude = 70;
+    minForwardRange = 100;
+    minRightRange = 100;
+    minLeftRange = 100;
+    smoothedForwardRange = forwardRange;
+    smoothedLeftRange = leftRange;
+    smoothedRightRange = rightRange;
+    smoothedAltitudeRange = altitudeRange;
     
-    filterVal = 0.9;
+    filterVal = 0.2; 
+    filterCollisionVal = 0.8;
+}
+
+void printDiff() {
+  Serial.print("--- DIFF: ");
+  Serial.println(diff);
 }
 
 void printCourse(){
     Serial.print("--- COURSE: ");
     Serial.println(course);
 }
-
+    
 void printRanges(){
     Serial.print("--- FORWARD RANGE: ");
+    Serial.print("RAW: ");
     Serial.println(forwardRange);
+    Serial.print("--- Smoothed: ");
+    Serial.println(smoothedForwardRange);
     Serial.print("--- RIGHT RANGE: ");
+    Serial.print("RAW: ");
     Serial.println(rightRange);
+    Serial.print("--- Smoothed: ");
+    Serial.println(smoothedRightRange);
     Serial.print("--- LEFT RANGE: ");
+    Serial.print("RAW: ");
     Serial.println(leftRange);
+    Serial.print("--- Smoothed: ");
+    Serial.println(smoothedLeftRange);
     Serial.print("--- ALTITUDE RANGE: ");
+    Serial.print("RAW: ");
     Serial.println(altitudeRange);
+    Serial.print("--- Smoothed: ");
+    Serial.println(smoothedAltitudeRange);
 }
 
 void printVoltage(){
@@ -174,10 +203,11 @@ void readAllSensors(){
 }
 
 void smoothInput(){
-    smooth(altitudeRange, filterVal, altitudeRange);
-    smooth(leftRange, filterVal, leftRange);
-    smooth(rightRange, filterVal, rightRange);
-    smooth(forwardRange, filterVal, forwardRange);
+    smoothedAltitudeRange = smooth(altitudeRange, filterVal, smoothedAltitudeRange);
+    d_smoothedAltitudeRange = (double)smoothedAltitudeRange;
+    smoothedLeftRange = smooth(leftRange, filterCollisionVal, smoothedLeftRange);
+    smoothedRightRange = smooth(rightRange, filterCollisionVal, smoothedRightRange);
+    smoothedForwardRange = smooth(forwardRange, filterCollisionVal, smoothedForwardRange);
 }
 
 void accelerate(){
@@ -189,20 +219,20 @@ void accelerate(){
     }
 
     //if we are below target go up, if not go down
-    if(acceleration > 65){
+    if((altitudeRange - targetAltitude) < -20 ){
         accelerateUp(thrust);
     }
-    else if(acceleration < - 65) {
+    else if((altitudeRange - targetAltitude) < 20 ){
         accelerateDown(thrust);
     }
     else { 
-        defaultGlide(120);
+        defaultGlide(190);
     }
 }
 
-//FIXME: course oppdateres ikke her, men i PIDen
 void turnToCourse(double course){
-    if(tailAcceleration < 0){
+
+  if(tailAcceleration < 0){
 
         tailThrust = (-tailAcceleration);
         turnLeft(tailThrust);
@@ -212,6 +242,7 @@ void turnToCourse(double course){
         turnRight(tailThrust);
     }
 }
+
 
 /*TODO:blimp is on collison course in forward direction. We then check right and left*/
 /*sensor and determine which has the most available space for*/
@@ -223,11 +254,13 @@ void turnToCourse(double course){
  boolean detectCollision()
 {
   // if colliton is up front:
-    if (forwardRange < minForwardRange) {
+    if (smoothedForwardRange < minForwardRange) {
       collisionDetected = true;
-      Serial.print("Kolisjon forutt, ny kurs:");
+        Serial.println("!!!!!!!!!!!!!!!");
+         Serial.print("Kolisjon oppdaget forut, ny kurs: ");
+         Serial.println("!!!!!!!!!!!!!!!");
         //check wich way to turn:
-        if (leftRange > rightRange) { //turn LEFT
+        if (smoothedLeftRange > smoothedRightRange) { //turn LEFT
           course = course - 180;
           if (course > 360) {
             course = course - 360;
@@ -235,6 +268,7 @@ void turnToCourse(double course){
            if (course < 0) {
                course = course + 360;
              }
+             Serial.print("new course: ");
              Serial.println(course);
              return true;
  
@@ -248,15 +282,18 @@ void turnToCourse(double course){
              if (course < 0) {
                course = course + 360;
              }
+             Serial.print("new course: ");
              Serial.println(course);
              return true;
         }
     }
         
-    if (leftRange < minLeftRange) {
+    if (smoothedLeftRange < minLeftRange) {
+         Serial.println("!!!!!!!!!!!!!!!");
          Serial.print("Kolisjon oppdaget til venstre!");
+         Serial.println("!!!!!!!!!!!!!!!");
          collisionDetected = true; // sørger for at vi ikke oppdager samme kolisjon mange ganger
-      course = d_heading - 70;
+      course = d_heading + 70;
       
        if (course > 360) {
             course = course - 360;
@@ -264,14 +301,16 @@ void turnToCourse(double course){
            if (course < 0) {
                course = course + 360;
              }
+             Serial.print("new course: ");
              Serial.println(course);
-             return true;
     }
     //kolisjon oppdaget til høyre:
-    if (rightRange < minRightRange) { 
+    if (smoothedRightRange < minRightRange) { 
           collisionDetected = true; //se opp
-         Serial.print("Kolisjon oppdaget til hoyre!"); 
-          //turn left with X degrees
+            Serial.println("!!!!!!!!!!!!!!!");
+         Serial.print("Kolisjon oppdaget til høyre, ny kurs: ");
+         Serial.println("!!!!!!!!!!!!!!!");
+           //turn left with X degrees
           course = d_heading - 70;
            if (course > 360) {
             course = course - 360;
@@ -280,11 +319,23 @@ void turnToCourse(double course){
                course = course + 360;
              
           }
-         Serial.println(course);
+          Serial.print("new course: ");
+             Serial.println(course);
+
          return true;
     }
   
     return false;
+}
+
+void calculateDiff() {  
+  diff = course - d_heading;
+  if (diff > 180) {
+    diff = diff - 360;
+  } else if (diff < -180) {
+
+    diff = diff + 360;
+  }
 }
           
 // return new course based on collision info
@@ -311,14 +362,16 @@ void loop(){
     }
     else{
         heading = getHeading();
-        d_heading = heading;
+        d_heading = (double)heading;
+        calculateDiff();
+        
         readAllSensors();
 
 
         if(SMOOTHED == 1){
             smoothInput();
         }
-
+        
         altitudePID.Compute();
         tailPID.Compute();
         /*testPID.Compute();*/
@@ -340,16 +393,21 @@ void loop(){
         if(DEBUG == 1){
             printHeading();
             printCourse();
-            printAltitude();
+            printDiff();
+          
+            //printAltitude();
             printRanges();
             printAcceleration();
             printTailAcceleration();
         }
     }
+        
     
+        
     
 }
 
+//TODO: kutt av litt i toppen på haleproppellen
 void turnLeft(double acceleration) {
   if(DEBUG == 1){
       Serial.print("--- Turning left with acceleration: ");
@@ -360,6 +418,7 @@ void turnLeft(double acceleration) {
   analogWrite(enablePin2, acceleration);
 }
 
+//TODO: kutt av litt i toppen på haleproppellen
 void turnRight(double acceleration){
   if(DEBUG == 1){
       Serial.print("--- Turning right with acceleration: ");
@@ -394,7 +453,7 @@ void accelerateDown(double acceleration){
   }
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
-  elevator.write(122);                   // snur stag i riktig posisjon
+  elevator.write(118);                   // snur stag i riktig posisjon
   delay(5);                             // venter litt på stag
   analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
@@ -408,7 +467,7 @@ void defaultGlide(double acceleration){
   
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
-  elevator.write(77);                   // snur stag
+  elevator.write(74);                   // snur stag
   delay(5);                             // venter på stag
   analogWrite(motor2Pin, acceleration); // kjører motor med PID akselerasjon
   digitalWrite(motor1Pin,LOW);
@@ -487,8 +546,9 @@ int smooth(int data, float filterVal, float smoothedVal){
   else if (filterVal <= 0){
     filterVal = 0;
   }
-
-  smoothedVal = (data * (1 - filterVal)) + (smoothedVal  *  filterVal);
+  Serial.print("SMooooooTh!");
+  smoothedVal = smoothedVal + (data - smoothedVal)*filterVal;
+ // smoothedVal = (data * (1 - filterVal)) + (smoothedVal  *  filterVal);
 
   return (int)smoothedVal;
 }
