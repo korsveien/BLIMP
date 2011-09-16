@@ -135,16 +135,17 @@ void setup() {
 
     //setter startverdier for avstandsbegrensninger og start kurs.
     course = 180;
-    targetAltitude = 90;
-    minForwardRange = 100;
-    minRightRange = 100;
-    minLeftRange = 100;
+    targetAltitude = 70;
+    minForwardRange = 150;
+    minRightRange = 150;
+    minLeftRange = 150;
     smoothedForwardRange = minForwardRange + 30; //forwardRange;
     smoothedLeftRange = minLeftRange + 30; //leftRange;
     smoothedRightRange = minRightRange + 30; //rightRange;
     smoothedAltitudeRange = targetAltitude; //altitudeRange; 
 
     filterVal = 0.03;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
+    filterCollisionVal = 0.05;
 }
 
 void readAllSensors(){
@@ -158,8 +159,14 @@ void smoothInput(){
     smoothedAltitudeRange = smooth(altitudeRange, filterVal, smoothedAltitudeRange);
     smootheAltitudeRangeFinal = smooth(smootheAltitudeRange, filterVal, smootheAltitudeRangeFinal);
     d_smoothedAltitudeRange = (double)smoothedAltitudeRangeFinal;
-    smoothedLeftRange = smooth(leftRange, filterCollisionVal, smoothedLeftRange);
+
+    smoothedLeftRangeTmp = smooth(leftRange, filterCollisionVal, smoothedLeftRangeTmp);
+    smoothedLeftRange = smooth(smoothedLeftRangeTmp, filterCollisionVal, smoothedLeftRange);
+
+    smoothedRightRangeTmp = smooth(RightRange, filterCollisionVal, smoothedRightRangeTmp);
     smoothedRightRange = smooth(rightRange, filterCollisionVal, smoothedRightRange);
+
+    smoothedForwardRangeTmp = smooth(ForwardRange, filterCollisionVal, smoothedForwardRangeTmp);
     smoothedForwardRange = smooth(forwardRange, filterCollisionVal, smoothedForwardRange);
 }
 
@@ -172,14 +179,14 @@ void accelerate(){
     }
 
     //if we are below target go up, if not go down
-    if((smoothedAltitudeRange - targetAltitude) < -20 ){
+    if(acceleration > 100){
         accelerateUp(thrust);
     }
-    else if((smoothedAltitudeRange - targetAltitude) < 20 ){
+    else if(acceleration < -100){
         accelerateDown(thrust);
     }
     else { 
-        defaultGlide(190);
+        defaultGlide(180);
     }
 }
 
