@@ -21,7 +21,7 @@
 #include <Wire.h>
 
 #define SMOOTHED 1
-#define DEBUG 0
+#define DEBUG 1
 #define TESTDOUBLES 0
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
@@ -33,13 +33,14 @@
 #define ELEVATORTEST 0
 #define ALTITUDEDEBUG 0
 #define TIMECOUNT 0
-#define SMOOTHINGDEBUG 1
+#define SMOOTHINGDEBUG 0
 
 Servo elevator; // servo pointer "elevator.write"
 double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
 double tailAcceleration, tailDefaulAcceleration, tailThrust;  //acceleration variables for tail propeller
-double targetAltitude, voltage, leftRange, rightRange, forwardRange, altitudeRange; //variables for sensors, targets & voltage reading
+double leftRange, rightRange, forwardRange, altitudeRange; //variables for sensors, targets & voltage reading
 double minLeftRange, minRightRange, minForwardRange, minAltitudeRange; // self explained
+double targetAltitude, voltage;
 
 float heading;                           // the current direction in degrees
 double d_heading, course, currentCourse; // d__heading is heading converted to double, course is the desired direction
@@ -63,10 +64,10 @@ int green = 8; //this sets the green led pin
 int blue = 3; //this sets the blue led pin
 
 //range sensors
-static int altitudeRangePin     = A0;
-static int rightRangePin   = A1;
-static int leftRangePin    = A2;
-static int forwardRangePin = A3;
+static int altitudeRangePin = A0;
+static int rightRangePin    = A1;
+static int leftRangePin     = A2;
+static int forwardRangePin  = A3;
 
 //compass setup
 int HMC6352SlaveAddress = 0x42; 
@@ -76,13 +77,13 @@ int HMC6352ReadAddress = 0x41; //"A" in hex, A command is:
 int headingValue; //kompass kurs variabel
 
 //smoothing filter variables
-int sensVal;        // for raw sensor values
-float filterVal;    // this determines smoothness  - .0001 is max  1 is off (no smoothing)
+int sensVal;                 // for raw sensor values
+float filterVal;             // this determines smoothness  - .0001 is max  1 is off (no smoothing)
 float filterCollisionVal;
-float smoothedAltitudeRange;  // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
+float smoothedAltitudeRange; // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
 float smoothedForwardRange;
 float smoothedLeftRange;
-float smoothedRightRange;// this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
+float smoothedRightRange;    // this would be the buffer value for another sensor if you needed to smooth two different sensors - not used in this sketch
 double d_smoothedAltitudeRange;
 // variable used for collision detection
 static double MINRANGE = 200.0;
@@ -149,7 +150,7 @@ void setup() {
     smoothedRightRange = minRightRange + 30; //rightRange;
     smoothedAltitudeRange = targetAltitude; //altitudeRange; 
 
-    filterVal = 0.1;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
+    filterVal = 0.03;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
     filterCollisionVal = 0.05;
 }
 
@@ -177,7 +178,6 @@ void smoothInput(){
     if(SMOOTHINGDEBUG == 1){
         printAltitude();
     }
-
 }
 
 void accelerate(){
@@ -344,7 +344,6 @@ void loop(){
     if(TESTDOUBLES == 1){
         testDoubleEngines();
     }
-
     else if(TESTTAIL == 1){
         testTailEngine();
     }
@@ -356,8 +355,8 @@ void loop(){
     }
     else{
       
-        //heading = getHeading();
-        //d_heading = (double)heading;
+        heading = getHeading();
+        d_heading = (double)heading;
         calculateDiff();
         readAllSensors();
 
@@ -518,7 +517,7 @@ float getHeading() {
 
   //time delays required by HMC6352 upon receipt of the command
   //Get Data. Compensate and Calculate New Heading : 6ms
-  delay(6);
+  delay(2);
 
   Wire.requestFrom(HMC6352SlaveAddress, 2); //get the two data bytes, MSB and LSB
 
@@ -551,76 +550,75 @@ int smooth(float data, float filterVal, float smoothedVal){
 }
 
 void testDoubleEngines(){
-  accelerateUp(102);
-  delay(3000);
-  accelerateDown(102);
-  delay(3000);
-  defaultGlide(102);
-  delay(3000);
-  
-  delay(3000);
-  accelerateUp(180);
-  accelerateDown(180);
-  delay(3000);
-  defaultGlide(180);
-  delay(3000);
+    accelerateUp(102);
+    delay(3000);
+    accelerateDown(102);
+    delay(3000);
+    defaultGlide(102);
+    delay(3000);
 
-  accelerateUp(255);
-  delay(3000);
-  accelerateDown(255);
-  delay(3000);
-  defaultGlide(255);
-  delay(3000);
+    delay(3000);
+    accelerateUp(180);
+    accelerateDown(180);
+    delay(3000);
+    defaultGlide(180);
+    delay(3000);
 
+    accelerateUp(255);
+    delay(3000);
+    accelerateDown(255);
+    delay(3000);
+    defaultGlide(255);
+    delay(3000);
 }
 
 void elevatorTest(){
-  elevator.write(30);
-  delay(3000);
-  elevator.write(90);
-  delay(3000);
-  elevator.write(130);
-  delay(3000);
+    elevator.write(30);
+    delay(3000);
+    elevator.write(90);
+    delay(3000);
+    elevator.write(130);
+    delay(3000);
 }
 
 void testTailEngine(){
-  turnRight(102);
-  delay(3000);
-  turnLeft(102);
-  delay(3000);
+    turnRight(102);
+    delay(3000);
+    turnLeft(102);
+    delay(3000);
 
-  turnRight(180);
-  delay(3000);
-  turnLeft(180);
-  delay(3000);
+    turnRight(180);
+    delay(3000);
+    turnLeft(180);
+    delay(3000);
 
-  turnRight(255);
-  delay(3000);
-  turnLeft(255);
-  delay(3000);
+    turnRight(255);
+    delay(3000);
+    turnLeft(255);
+    delay(3000);
 }
 
 void testRightTail(){
-  turnRight(0);
-  delay(3000);
-  turnRight(20);
-  delay(3000);
-  turnRight(40);
-  delay(3000);
-  turnRight(60);
-  delay(3000);
-  turnRight(80);
-  delay(3000);
-  turnRight(102);
-  delay(3000);
-  turnRight(130);
-  delay(3000);
-  turnRight(180);
-  delay(3000);
-  turnRight(220);
-  delay(3000);
-  turnRight(255);
-  delay(3000);
+    turnRight(0);
+    delay(3000);
+    turnRight(20);
+    delay(3000);
+    turnRight(40);
+    delay(3000);
+    turnRight(60);
+    delay(3000);
+    turnRight(80);
+    delay(3000);
+    turnRight(102);
+    delay(3000);
+    turnRight(130);
+    delay(3000);
+    turnRight(180);
+    delay(3000);
+    turnRight(220);
+    delay(3000);
+    turnRight(255);
+    delay(3000);
 }
 
 void testDownAcceleration(){
