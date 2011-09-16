@@ -66,7 +66,7 @@ int blue = 3; //this sets the blue led pin
 //range sensors
 static int altitudeRangePin = A0;
 static int rightRangePin    = A1;
-static int leftRangePin     = A2;
+static int leftRangePin     = A7;
 static int forwardRangePin  = A3;
 
 //compass setup
