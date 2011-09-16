@@ -27,6 +27,9 @@
 #define TESTRIGHTTAIL 0
 #define TESTDOWN 0
 #define BATTERYMONITOR 0
+#define FRONTCOLLISION 1
+#define LEFTCOLLISION 0
+#define RIGHTCOLLISION 0
 
 Servo elevator; // servo pointer "elevator.write"
 double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
@@ -143,8 +146,8 @@ void setup() {
     smoothedAltitudeRange = targetAltitude; //altitudeRange; 
 
     
-    filterVal = 0.8;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
-    filterCollisionVal = 0.2; //lav smoothing gir høy hastighet men større sjans på feil, jeg mener denne bør være høy på kollisjon!
+    filterVal = 0.9;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
+    filterCollisionVal = 0.99; //lav smoothing gir høy hastighet men større sjans på feil, jeg mener denne bør være høy på kollisjon!
 }
 
 
@@ -204,93 +207,100 @@ void turnToCourse(double course){
 
 //Return new course if collision is detected
 //Leaves the course unaltered if no collision is detected
- boolean detectCollision()
+boolean detectCollision()
 {
-  // if colliton is up front:
-    if (smoothedForwardRange < minForwardRange) {
-      collisionDetected = true;
+    // if colliton is up front:
+    if(FRONTCOLLISION == 1){
+        if (smoothedForwardRange < minForwardRange) {
+            collisionDetected = true;
 
-      if(DEBUG ==1){
-          Serial.println("!!!!!!!!!!!!!!!");
-          Serial.print("Kolisjon oppdaget forut, ny kurs: ");
-          Serial.println("!!!!!!!!!!!!!!!");
-      }
-        //check wich way to turn:
-        if (smoothedLeftRange > smoothedRightRange) { //turn LEFT
-          course = course - 150;
-          if (course > 360) {
-            course = course - 360;
-          }
-          if (course < 0) {
-              course = course + 360;
-          }
-          if(DEBUG == 1){
-              Serial.print("new course: ");
-              Serial.println(course);
-          }
-          return true;
- 
-        } else { //turn RIGHT
-          course = d_heading + 150;
-          // er kurs større enn 360, har vi gått rundt og 360 trekkes fra
-          if (course > 360) {
-            course = course - 360;
-             }
-             //hvis ny krurs blir mindre enn 0 har vi gått rundt og 360 må legges til, feks -20 + 360 = 340
-             if (course < 0) {
-               course = course + 360;
-             }
-             if(DEBUG == 1){
-                 Serial.print("new course: ");
-                 Serial.println(course);
-             }
-             return true;
+            if(DEBUG ==1){
+                Serial.println("!!!!!!!!!!!!!!!");
+                Serial.print("Kolisjon oppdaget forut, ny kurs: ");
+                Serial.println("!!!!!!!!!!!!!!!");
+            }
+            //check wich way to turn:
+            if (smoothedLeftRange > smoothedRightRange) { //turn LEFT
+                course = course - 150;
+                if (course > 360) {
+                    course = course - 360;
+                }
+                if (course < 0) {
+                    course = course + 360;
+                }
+                if(DEBUG == 1){
+                    Serial.print("new course: ");
+                    Serial.println(course);
+                }
+                return true;
+
+            } else { //turn RIGHT
+                course = d_heading + 150;
+                // er kurs større enn 360, har vi gått rundt og 360 trekkes fra
+                if (course > 360) {
+                    course = course - 360;
+                }
+                //hvis ny krurs blir mindre enn 0 har vi gått rundt og 360 må legges til, feks -20 + 360 = 340
+                if (course < 0) {
+                    course = course + 360;
+                }
+                if(DEBUG == 1){
+                    Serial.print("new course: ");
+                    Serial.println(course);
+                }
+                return true;
+            }
         }
     }
-        
-    if (smoothedLeftRange < minLeftRange) {
-        if(DEBUG == 1){
-            Serial.println("!!!!!!!!!!!!!!!");
-            Serial.print("Kolisjon oppdaget til venstre!");
-            Serial.println("!!!!!!!!!!!!!!!");
-        }
-        collisionDetected = true; // sørger for at vi ikke oppdager samme kolisjon mange ganger
-        course = d_heading + 70;
-      
-       if (course > 360) {
-            course = course - 360;
-          }
-           if (course < 0) {
-               course = course + 360;
-             }
-             if(DEBUG == 1){
-                 Serial.print("new course: ");
-                 Serial.println(course);
-             }
-    }
-    //kolisjon oppdaget til høyre:
-    if (smoothedRightRange < minRightRange) { 
-          collisionDetected = true; //se opp
-          if(DEBUG == 1){
-              Serial.println("!!!!!!!!!!!!!!!");
-              Serial.print("Kolisjon oppdaget til høyre, ny kurs: ");
-              Serial.println("!!!!!!!!!!!!!!!");
-          }
-           //turn left with X degrees
-          course = d_heading - 70;
-           if (course > 360) {
-            course = course - 360;
-           }
-             if (course < 0) {
-               course = course + 360;
-             
-          }
-          if(DEBUG == 1){
-          Serial.print("new course: ");
-             Serial.println(course);
-          }
 
-         return true;
+    if(LEFTCOLLISION == 1){
+
+        if (smoothedLeftRange < minLeftRange) {
+            if(DEBUG == 1){
+                Serial.println("!!!!!!!!!!!!!!!");
+                Serial.print("Kolisjon oppdaget til venstre!");
+                Serial.println("!!!!!!!!!!!!!!!");
+            }
+            collisionDetected = true; // sørger for at vi ikke oppdager samme kolisjon mange ganger
+            course = d_heading + 70;
+
+            if (course > 360) {
+                course = course - 360;
+            }
+            if (course < 0) {
+                course = course + 360;
+            }
+            if(DEBUG == 1){
+                Serial.print("new course: ");
+                Serial.println(course);
+            }
+        }
+    }
+
+    if(RIGHTCOLLISION == 1){
+        //kolisjon oppdaget til høyre:
+        if (smoothedRightRange < minRightRange) { 
+            collisionDetected = true; //se opp
+            if(DEBUG == 1){
+                Serial.println("!!!!!!!!!!!!!!!");
+                Serial.print("Kolisjon oppdaget til høyre, ny kurs: ");
+                Serial.println("!!!!!!!!!!!!!!!");
+            }
+            //turn left with X degrees
+            course = d_heading - 70;
+            if (course > 360) {
+                course = course - 360;
+            }
+            if (course < 0) {
+                course = course + 360;
+
+            }
+            if(DEBUG == 1){
+                Serial.print("new course: ");
+                Serial.println(course);
+            }
+            return true;
+        }
     }
     return false;
 }
@@ -614,7 +624,6 @@ void testDownAcceleration(){
     accelerateDown(255);
     delay(3000);
 }
-
 void printDiff() {
   Serial.print("--- DIFF: ");
   Serial.println(diff);
