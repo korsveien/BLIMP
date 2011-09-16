@@ -44,7 +44,6 @@ double diff;      //  diff to target
 
 int timeCount =0;
 
-
 static int elevatorPin = 4;  // "staget" styres over denne
 static int motor1Pin   = 9;  // H-bridge leg 1 (pin 2, 1A)
 static int motor2Pin   = 11; // H-bridge leg 2 (pin 7, 2A)
@@ -84,7 +83,6 @@ double d_smoothedAltitudeRange;
 // variable used for collision detection
 static double MINRANGE = 200.0;
 boolean collisionDetected = false;
-
 
 // PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, Direction)
 // Input    : Variable we are trying to control(double)
@@ -145,11 +143,9 @@ void setup() {
     smoothedRightRange = minRightRange + 30; //rightRange;
     smoothedAltitudeRange = targetAltitude; //altitudeRange; 
 
-    
     filterVal = 0.9;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
     filterCollisionVal = 0.99; //lav smoothing gir høy hastighet men større sjans på feil, jeg mener denne bør være høy på kollisjon!
 }
-
 
 void readAllSensors(){
     altitudeRange = analogRead(altitudeRangePin);
@@ -198,7 +194,6 @@ void turnToCourse(double course){
         turnRight(tailThrust);
     }
 }
-
 
 /*TODO:blimp is on collison course in forward direction. We then check right and left*/
 /*sensor and determine which has the most available space for*/
@@ -310,14 +305,13 @@ void calculateDiff() {
   diff = course - d_heading;
   if (diff > 180) {
     diff = diff - 360;
-  } else if (diff < -180) {
-
+  } 
+  else if (diff < -180) {
     diff = diff + 360;
   }
 }
           
 // return new course based on collision info
-//TODO
 double stakeOutCourse(){return 0.0;}
 
 void loop(){ 
@@ -343,9 +337,7 @@ void loop(){
         //heading = getHeading();
         //d_heading = (double)heading;
         calculateDiff();
-        
         readAllSensors();
-
 
         if(SMOOTHED == 1){
             smoothInput();
@@ -354,13 +346,12 @@ void loop(){
         altitudePID.Compute();
         tailPID.Compute();
         //testPID.Compute();
-        if( collisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
-         if (!detectCollision() ) { //setter ny kurs om en kolisjon oppda
-        // Serial.println("ingen kollisjoner oppdaget"); //sjekker om vi kolliderer og oppdaterer kurs om nødvendig 
-          }
+
+        if(collisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
+            detectCollision();
         }
-        //Serial.println(abs(d_heading));
-        //accelerate();              
+
+        accelerate();              
         turnToCourse(course); //svinger med akselerasjon mot korrekt kurs.
          if (d_heading - course > -3 && d_heading - course < 3) {
            collisionDetected = false;
@@ -378,7 +369,6 @@ void loop(){
              timeCount = 0;
            }
            
-
         if(DEBUG == 1){
             printHeading();
             printCourse();
@@ -395,8 +385,8 @@ void loop(){
 //TODO: kutt av litt i toppen på haleproppellen
 void turnLeft(double acceleration) {
   if(DEBUG == 1){
-      /*Serial.print("--- Turning left with acceleration: ");*/
-      /*Serial.println(acceleration);*/
+      Serial.print("--- Turning left with acceleration: ");
+      Serial.println(acceleration);
   }
   digitalWrite(tailPin1, LOW);
   digitalWrite(tailPin2, HIGH);
@@ -413,7 +403,6 @@ void turnRight(double acceleration){
   digitalWrite(tailPin2, LOW);
   analogWrite(enablePin2, acceleration);
 }
-
 
 void accelerateUp(double acceleration){
   if(DEBUG == 1){
@@ -515,13 +504,11 @@ float getHeading() {
   float headingSum = (MSB << 8) + LSB; //(MSB / LSB sum)
   float headingInt = headingSum / 10; 
   
-  
   return(headingInt);
   
   ///Serial.print(headingInt);
   //Serial.println(" degrees");
 }
-
 
 int smooth(int data, float filterVal, float smoothedVal){
 
@@ -624,6 +611,7 @@ void testDownAcceleration(){
     accelerateDown(255);
     delay(3000);
 }
+
 void printDiff() {
   Serial.print("--- DIFF: ");
   Serial.println(diff);
