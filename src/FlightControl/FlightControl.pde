@@ -144,8 +144,7 @@ void setup() {
     smoothedRightRange = minRightRange + 30; //rightRange;
     smoothedAltitudeRange = targetAltitude; //altitudeRange; 
 
-    filterVal = 0.7;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
-    filterCollisionVal = 0.99; //lav smoothing gir høy hastighet men større sjans på feil, jeg mener denne bør være høy på kollisjon!
+    filterVal = 0.03;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
 }
 
 void readAllSensors(){
@@ -157,7 +156,8 @@ void readAllSensors(){
 
 void smoothInput(){
     smoothedAltitudeRange = smooth(altitudeRange, filterVal, smoothedAltitudeRange);
-    d_smoothedAltitudeRange = (double)smoothedAltitudeRange;
+    smootheAltitudeRangeFinal = smooth(smootheAltitudeRange, filterVal, smootheAltitudeRangeFinal);
+    d_smoothedAltitudeRange = (double)smoothedAltitudeRangeFinal;
     smoothedLeftRange = smooth(leftRange, filterCollisionVal, smoothedLeftRange);
     smoothedRightRange = smooth(rightRange, filterCollisionVal, smoothedRightRange);
     smoothedForwardRange = smooth(forwardRange, filterCollisionVal, smoothedForwardRange);
@@ -318,15 +318,16 @@ void calculateDiff() {
 double stakeOutCourse(){return 0.0;}
 
 void loop(){ 
+    if(ELEVATORTEST == 1){
+        elevatorTest();
+    }
     if(BATTERYMONITOR == 1){
         batteryMonitor();
     }
-    else if(ELEVATORTEST == 1){
-        elevatorTest();
-    }
-    else if(TESTDOUBLES == 1){
+    if(TESTDOUBLES == 1){
         testDoubleEngines();
     }
+
     else if(TESTTAIL == 1){
         testTailEngine();
     }
@@ -417,7 +418,7 @@ void accelerateUp(double acceleration){
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
   elevator.write(30);                   // snur stag i riktig posisjon
-  /*delay(1);                             // venter litt på stag*/
+  delay(5);                             // venter litt på stag
   analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
   
@@ -432,7 +433,7 @@ void accelerateDown(double acceleration){
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
   elevator.write(118);                   // snur stag i riktig posisjon
-  /*delay(1);                             // venter litt på stag*/
+  delay(5);                             // venter litt på stag
   analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
 }
@@ -446,7 +447,7 @@ void defaultGlide(double acceleration){
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
   elevator.write(74);                   // snur stag
-  /*delay(5);                             // venter på stag*/
+  delay(5);                             // venter på stag
   analogWrite(motor2Pin, acceleration); // kjører motor med PID akselerasjon
   digitalWrite(motor1Pin,LOW);
 }
@@ -513,7 +514,7 @@ float getHeading() {
   //Serial.println(" degrees");
 }
 
-int smooth(int data, float filterVal, float smoothedVal){
+int smooth(float data, float filterVal, float smoothedVal){
 
   if (filterVal > 1){ // check to make sure param's are within range
     filterVal = .99;
@@ -521,11 +522,10 @@ int smooth(int data, float filterVal, float smoothedVal){
   else if (filterVal <= 0){
     filterVal = 0;
   }
-  //Serial.print("SMooooooTh!");
-  //smoothedVal = smoothedVal + (data - smoothedVal)*filterVal;
-  smoothedVal = (data * (1 - filterVal)) + (smoothedVal  *  filterVal);
+  smoothedVal = smoothedVal + (data - smoothedVal)*filterVal;
+  /*smoothedVal = (data * (1 - filterVal)) + (smoothedVal  *  filterVal);*/
 
-  return (int)smoothedVal;
+  return smoothedVal;
 }
 
 void testDoubleEngines(){
@@ -675,6 +675,8 @@ void printHeading(){
 void printAltitude(){
     Serial.print("*** ALTITUDE RANGE: ");
     Serial.println(altitudeRange);
+    Serial.print("***SMOOTHED: ");
+    Serial.println(smoothedAltitudeRangeFinal);
 }
 
 void printAcceleration(){
