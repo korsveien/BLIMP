@@ -30,7 +30,9 @@
 #define FRONTCOLLISION 1
 #define LEFTCOLLISION 0
 #define RIGHTCOLLISION 0
-#define ELEVATORTEST 1
+#define ELEVATORTEST 0
+#define ALTITUDEDEBUG 0
+#define TIMECOUNT 0
 
 Servo elevator; // servo pointer "elevator.write"
 double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
@@ -84,6 +86,8 @@ double d_smoothedAltitudeRange;
 // variable used for collision detection
 static double MINRANGE = 200.0;
 boolean collisionDetected = false;
+
+float smoothedAltitudeRangeFinal, smoothedLeftRangeTmp, smoothedRightRangeTmp, smoothedForwardRangeTmp;
 
 // PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, Direction)
 // Input    : Variable we are trying to control(double)
@@ -139,10 +143,10 @@ void setup() {
     minForwardRange = 150;
     minRightRange = 150;
     minLeftRange = 150;
-    smoothedForwardRange = minForwardRange + 30; //forwardRange;
-    smoothedLeftRange = minLeftRange + 30; //leftRange;
-    smoothedRightRange = minRightRange + 30; //rightRange;
-    smoothedAltitudeRange = targetAltitude; //altitudeRange; 
+    smoothedForwardRange = analogRead(forwardRangePin);   // forwardRange;
+    smoothedLeftRange = analogRead(leftRangePin);         // leftRange;
+    smoothedRightRange = analogRead(rightRangePin);       // rightRange;
+    smoothedAltitudeRange = analogRead(altitudeRangePin); // altitudeRange;
 
     filterVal = 0.03;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
     filterCollisionVal = 0.05;
@@ -157,16 +161,16 @@ void readAllSensors(){
 
 void smoothInput(){
     smoothedAltitudeRange = smooth(altitudeRange, filterVal, smoothedAltitudeRange);
-    smootheAltitudeRangeFinal = smooth(smootheAltitudeRange, filterVal, smootheAltitudeRangeFinal);
+    smoothedAltitudeRangeFinal = smooth(smoothedAltitudeRange, filterVal, smoothedAltitudeRangeFinal);
     d_smoothedAltitudeRange = (double)smoothedAltitudeRangeFinal;
 
     smoothedLeftRangeTmp = smooth(leftRange, filterCollisionVal, smoothedLeftRangeTmp);
     smoothedLeftRange = smooth(smoothedLeftRangeTmp, filterCollisionVal, smoothedLeftRange);
 
-    smoothedRightRangeTmp = smooth(RightRange, filterCollisionVal, smoothedRightRangeTmp);
+    smoothedRightRangeTmp = smooth(rightRange, filterCollisionVal, smoothedRightRangeTmp);
     smoothedRightRange = smooth(rightRange, filterCollisionVal, smoothedRightRange);
 
-    smoothedForwardRangeTmp = smooth(ForwardRange, filterCollisionVal, smoothedForwardRangeTmp);
+    smoothedForwardRangeTmp = smooth(forwardRange, filterCollisionVal, smoothedForwardRangeTmp);
     smoothedForwardRange = smooth(forwardRange, filterCollisionVal, smoothedForwardRange);
 }
 
@@ -364,6 +368,9 @@ void loop(){
         }
 
         accelerate();              
+        if(ALTITUDEDEBUG == 1){
+            printAltitude();
+        }
         turnToCourse(course); //svinger med akselerasjon mot korrekt kurs.
          if (d_heading - course > -3 && d_heading - course < 3) {
            collisionDetected = false;
@@ -373,13 +380,15 @@ void loop(){
            }
          }
          
-           timeCount = timeCount +1;
-           if (timeCount == 100) {
-             Serial.print("100 cycles took: ");
-             Serial.println(millis());
-             delay(5000);
-             timeCount = 0;
-           }
+         if(TIMECOUNT == 1){
+             timeCount = timeCount +1;
+             if (timeCount == 100) {
+                 Serial.print("100 cycles took: ");
+                 Serial.println(millis());
+                 delay(5000);
+                 timeCount = 0;
+             }
+         }
            
         if(DEBUG == 1){
             printHeading();
