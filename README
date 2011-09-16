@@ -1,0 +1,9 @@
+School project using arduino. The ballon is 6" long, which we have
+fitted with a housing underneath containing an arduino, a digital
+compass and four ultrasound sensors for collision detection.
+
+Two propellors are fitted on a crossbeam controlled by a servo. An
+additionol propeller is fitted on the tail of the blimp.
+
+The control system includes two PIDs used to stabilize height and
+course.
