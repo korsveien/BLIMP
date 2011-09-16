@@ -37,10 +37,10 @@ double tailAcceleration, tailDefaulAcceleration, tailThrust;  //acceleration var
 double targetAltitude, voltage, leftRange, rightRange, forwardRange, altitudeRange; //variables for sensors, targets & voltage reading
 double minLeftRange, minRightRange, minForwardRange, minAltitudeRange; // self explained
 
-float heading; //the current direction in degrees
-double d_heading, course, currentCourse; //d__heading is heading converted to double, course is the desired direction
-double target = 0; // target for compass diferanse
-double diff;      //  diff to target
+float heading;                           // the current direction in degrees
+double d_heading, course, currentCourse; // d__heading is heading converted to double, course is the desired direction
+double target = 180;                     // target for compass differens
+double diff;                             // diff to target
 
 int timeCount =0;
 
@@ -303,10 +303,12 @@ boolean detectCollision()
 //fungerer diff med tanke på negative verdier osv?
 void calculateDiff() {  
   diff = course - d_heading;
-  if (diff > 180) {
+  diff = diff + 180;
+
+  if (diff > 360) {
     diff = diff - 360;
   } 
-  else if (diff < -180) {
+  else if (diff < 180) {
     diff = diff + 360;
   }
 }
