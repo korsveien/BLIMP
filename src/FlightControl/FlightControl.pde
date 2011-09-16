@@ -21,7 +21,7 @@
 #include <Wire.h>
 
 #define SMOOTHED 1
-#define DEBUG 1
+#define DEBUG 0
 #define TESTDOUBLES 0
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
@@ -34,6 +34,7 @@
 #define ALTITUDEDEBUG 0
 #define TIMECOUNT 0
 #define SMOOTHINGDEBUG 0
+#define ENABLETAIL 1
 
 Servo elevator; // servo pointer "elevator.write"
 double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
@@ -47,7 +48,7 @@ double d_heading, course, currentCourse; // d__heading is heading converted to d
 double target = 180;                     // target for compass differens
 double diff;                             // diff to target
 
-int timeCount =0;
+int timeCount = 0;
 
 static int elevatorPin = 4;  // "staget" styres over denne
 static int motor1Pin   = 9;  // H-bridge leg 1 (pin 2, 1A)
@@ -96,7 +97,7 @@ float smoothedAltitudeRangeFinal, smoothedLeftRangeTmp, smoothedRightRangeTmp, s
 // Output   : The variable that will be adjusted by the PID(double)
 // Setpoint : The value we want to Input to maintain(double)
 PID altitudePID(&d_smoothedAltitudeRange, &acceleration, &targetAltitude,2,0,0,DIRECT); 
-PID tailPID(&diff, &tailAcceleration, &target,1,0,0,DIRECT); 
+PID tailPID(&diff, &tailAcceleration, &target,0.5,0,0,DIRECT); 
 
 //for testing multiple PID's using forward sensor
 /*double targetTestRange = 50.0;*/
@@ -141,10 +142,10 @@ void setup() {
 
     //setter startverdier for avstandsbegrensninger og start kurs.
     course = 180;
-    targetAltitude = 70;
-    minForwardRange = 150;
-    minRightRange = 150;
-    minLeftRange = 150;
+    targetAltitude = 120;
+    minForwardRange = 200;
+    minRightRange = 200;
+    minLeftRange = 200;
     smoothedForwardRange = minForwardRange + 30; //forwardRange;
     smoothedLeftRange = minLeftRange + 30; //leftRange;
     smoothedRightRange = minRightRange + 30; //rightRange;
@@ -188,6 +189,7 @@ void accelerate(){
         thrust = acceleration;
     }
 
+    /*printAcceleration();*/
     //if we are below target go up, if not go down
     if(acceleration > 100){
         accelerateUp(thrust);
@@ -365,25 +367,20 @@ void loop(){
         }
         
         altitudePID.Compute();
-        tailPID.Compute();
-        //testPID.Compute();
+        
+        if(ENABLETAIL == 1){
+            tailPID.Compute();
+            //testPID.Compute();
 
-        if(collisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
-            detectCollision();
+            if(collisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
+                detectCollision();
+            }
         }
 
         accelerate();              
         if(ALTITUDEDEBUG == 1){
             printAltitude();
         }
-        turnToCourse(course); //svinger med akselerasjon mot korrekt kurs.
-         if (d_heading - course > -3 && d_heading - course < 3) {
-           collisionDetected = false;
-           if(DEBUG == 1){
-               Serial.println("!!!! kolisjon avverget !!! ");
-               Serial.println();        
-           }
-         }
          
          if(TIMECOUNT == 1){
              timeCount = timeCount +1;
@@ -439,7 +436,7 @@ void accelerateUp(double acceleration){
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
   elevator.write(30);                   // snur stag i riktig posisjon
-  delay(5);                             // venter litt på stag
+  delay(1);                             // venter litt på stag
   analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
   
@@ -454,7 +451,7 @@ void accelerateDown(double acceleration){
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
   elevator.write(118);                   // snur stag i riktig posisjon
-  delay(5);                             // venter litt på stag
+  delay(1);                             // venter litt på stag
   analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
 }
@@ -468,7 +465,7 @@ void defaultGlide(double acceleration){
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
   elevator.write(74);                   // snur stag
-  delay(5);                             // venter på stag
+  delay(1);                             // venter på stag
   analogWrite(motor2Pin, acceleration); // kjører motor med PID akselerasjon
   digitalWrite(motor1Pin,LOW);
 }
@@ -517,7 +514,7 @@ float getHeading() {
 
   //time delays required by HMC6352 upon receipt of the command
   //Get Data. Compensate and Calculate New Heading : 6ms
-  delay(2);
+  delay(1);
 
   Wire.requestFrom(HMC6352SlaveAddress, 2); //get the two data bytes, MSB and LSB
 
