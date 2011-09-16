@@ -21,7 +21,7 @@
 #include <Wire.h>
 
 #define SMOOTHED 1
-#define DEBUG 1
+#define DEBUG 0
 #define TESTDOUBLES 0
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
@@ -33,6 +33,7 @@
 #define ELEVATORTEST 0
 #define ALTITUDEDEBUG 0
 #define TIMECOUNT 0
+#define SMOOTHINGDEBUG 1
 
 Servo elevator; // servo pointer "elevator.write"
 double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
@@ -143,20 +144,20 @@ void setup() {
     minForwardRange = 150;
     minRightRange = 150;
     minLeftRange = 150;
-    smoothedForwardRange = analogRead(forwardRangePin);   // forwardRange;
-    smoothedLeftRange = analogRead(leftRangePin);         // leftRange;
-    smoothedRightRange = analogRead(rightRangePin);       // rightRange;
-    smoothedAltitudeRange = analogRead(altitudeRangePin); // altitudeRange;
+    smoothedForwardRange = minForwardRange + 30; //forwardRange;
+    smoothedLeftRange = minLeftRange + 30; //leftRange;
+    smoothedRightRange = minRightRange + 30; //rightRange;
+    smoothedAltitudeRange = targetAltitude; //altitudeRange; 
 
-    filterVal = 0.03;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
+    filterVal = 0.1;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
     filterCollisionVal = 0.05;
 }
 
 void readAllSensors(){
-    altitudeRange = analogRead(altitudeRangePin);
-    leftRange     = analogRead(leftRangePin);
-    rightRange    = analogRead(rightRangePin);
-    forwardRange  = analogRead(forwardRangePin);
+    altitudeRange = analogRead(altitudeRangePin) + 0.01;
+    leftRange     = analogRead(leftRangePin) + 0.01;
+    rightRange    = analogRead(rightRangePin) + 0.01;
+    forwardRange  = analogRead(forwardRangePin) + 0.01;
 }
 
 void smoothInput(){
@@ -172,6 +173,11 @@ void smoothInput(){
 
     smoothedForwardRangeTmp = smooth(forwardRange, filterCollisionVal, smoothedForwardRangeTmp);
     smoothedForwardRange = smooth(forwardRange, filterCollisionVal, smoothedForwardRange);
+
+    if(SMOOTHINGDEBUG == 1){
+        printAltitude();
+    }
+
 }
 
 void accelerate(){
