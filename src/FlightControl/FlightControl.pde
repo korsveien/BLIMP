@@ -11,6 +11,11 @@
 * Compass library     : http://mbed.org/cookbook/HMC6352-Digital-Compass                *
 *****************************************************************************************/
 
+//Fredrik endret smoothing formelen 15.9 på kvelden,  nå er høyere filter mer smoothing
+//vi må finne ut av runtime for koden. Det er avjgørende for å sette riktig smoothing osv. Kjøretid bør være over 50 x sek.
+//endret også startingverdiene for smoothing for å unngå feil kolisjon ved oppstart.
+//vi bør jobbe med et og et problem. F.eks deaktivere kolisjoner fra siden og få til riktig oppførsel ved sensor foran.
+//Vi trenger en litt spessiell PID justering, vi ønsker stort vindu  å defaultglide i. Defaultglide børe noe nedover så høyden holdes uten å gass rett opp.
 #include <PID_v1.h>
 #include <Servo.h>
 #include <Wire.h>
@@ -23,14 +28,14 @@
 #define TESTDOWN 0
 #define BATTERYMONITOR 0
 
-Servo elevator;
-double acceleration, defaultAcceleration,thrust;
-double tailAcceleration, tailDefaulAcceleration, tailThrust;
-double targetAltitude, voltage, leftRange, rightRange, forwardRange, altitudeRange;
-double minLeftRange, minRightRange, minForwardRange, MinAltitudeRange;
+Servo elevator; // servo pointer "elevator.write"
+double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
+double tailAcceleration, tailDefaulAcceleration, tailThrust;  //acceleration variables for tail propeller
+double targetAltitude, voltage, leftRange, rightRange, forwardRange, altitudeRange; //variables for sensors, targets & voltage reading
+double minLeftRange, minRightRange, minForwardRange, minAltitudeRange; // self explained
 
-float heading;
-double d_heading, course, currentCourse;
+float heading; //the current direction in degrees
+double d_heading, course, currentCourse; //d__heading is heading converted to double, course is the desired direction
 double target = 0; // target for compass diferanse
 double diff;      //  diff to target
 
@@ -80,7 +85,7 @@ boolean collisionDetected = false;
 // Output   : The variable that will be adjusted by the PID(double)
 // Setpoint : The value we want to Input to maintain(double)
 PID altitudePID(&d_smoothedAltitudeRange, &acceleration, &targetAltitude,4,0,0.2,DIRECT); 
-PID tailPID(&diff, &tailAcceleration, &target,0.8,0,0,DIRECT); 
+PID tailPID(&diff, &tailAcceleration, &target,1.4,0,0,DIRECT); 
 
 //for testing multiple PID's using forward sensor
 /*double targetTestRange = 50.0;*/
@@ -93,7 +98,8 @@ void setup() {
     altitudePID.SetMode(AUTOMATIC);
     altitudePID.SetOutputLimits(-255, 255); 
     altitudePID.SetSampleTime(5);
-
+    
+    //vi må jobbe med å finne riktig maks outpoot for proppelen.
     tailPID.SetMode(AUTOMATIC);
     tailPID.SetOutputLimits(-100, 150); 
     tailPID.SetSampleTime(5);
@@ -120,7 +126,7 @@ void setup() {
     HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
     Wire.begin();
     
-    readAllSensors();
+    readAllSensors(); //leser alle sensorer en gang for å 
 
     //setter startverdier for avstandsbegrensninger og start kurs.
     course = 180;
@@ -128,13 +134,13 @@ void setup() {
     minForwardRange = 100;
     minRightRange = 100;
     minLeftRange = 100;
-    smoothedForwardRange = forwardRange;
-    smoothedLeftRange = leftRange;
-    smoothedRightRange = rightRange;
-    smoothedAltitudeRange = altitudeRange;
+    smoothedForwardRange = minForwardRange + 30; //forwardRange;
+    smoothedLeftRange = minLeftRange + 30; //leftRange;
+    smoothedRightRange = minRightRange + 30; //rightRange;
+    smoothedAltitudeRange = targetAltitude; //altitudeRange; 
     
-    filterVal = 0.2; 
-    filterCollisionVal = 0.8;
+    filterVal = 0.8;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
+    filterCollisionVal = 0.2; //lav smoothing gir høy hastighet men større sjans på feil, jeg mener denne bør være høy på kollisjon!
 }
 
 void printDiff() {
@@ -261,19 +267,19 @@ void turnToCourse(double course){
          Serial.println("!!!!!!!!!!!!!!!");
         //check wich way to turn:
         if (smoothedLeftRange > smoothedRightRange) { //turn LEFT
-          course = course - 180;
+          course = course - 150;
           if (course > 360) {
             course = course - 360;
           }
-           if (course < 0) {
-               course = course + 360;
-             }
-             Serial.print("new course: ");
-             Serial.println(course);
-             return true;
+          if (course < 0) {
+              course = course + 360;
+          }
+          Serial.print("new course: ");
+          Serial.println(course);
+          return true;
  
         } else { //turn RIGHT
-          course = d_heading + 180,00;
+          course = d_heading + 150;
           // er kurs større enn 360, har vi gått rundt og 360 trekkes fra
           if (course > 360) {
             course = course - 360;
@@ -328,6 +334,7 @@ void turnToCourse(double course){
     return false;
 }
 
+//fungerer diff med tanke på negative verdier osv?
 void calculateDiff() {  
   diff = course - d_heading;
   if (diff > 180) {
@@ -380,7 +387,7 @@ void loop(){
          Serial.println("ingen kollisjoner oppdaget"); //sjekker om vi kolliderer og oppdaterer kurs om nødvendig 
           }
         }
-        Serial.println(abs(d_heading));
+        //Serial.println(abs(d_heading));
         accelerate();              
         turnToCourse(course); //svinger med akselerasjon mot korrekt kurs.
          if (d_heading - course > -3 && d_heading - course < 3) {
@@ -401,10 +408,6 @@ void loop(){
             printTailAcceleration();
         }
     }
-        
-    
-        
-    
 }
 
 //TODO: kutt av litt i toppen på haleproppellen
@@ -547,8 +550,8 @@ int smooth(int data, float filterVal, float smoothedVal){
     filterVal = 0;
   }
   Serial.print("SMooooooTh!");
-  smoothedVal = smoothedVal + (data - smoothedVal)*filterVal;
- // smoothedVal = (data * (1 - filterVal)) + (smoothedVal  *  filterVal);
+  //smoothedVal = smoothedVal + (data - smoothedVal)*filterVal;
+  smoothedVal = (data * (1 - filterVal)) + (smoothedVal  *  filterVal);
 
   return (int)smoothedVal;
 }
