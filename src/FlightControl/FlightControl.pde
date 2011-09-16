@@ -21,7 +21,7 @@
 #include <Wire.h>
 
 #define SMOOTHED 1
-#define DEBUG 1
+#define DEBUG 0
 #define TESTDOUBLES 0
 #define TESTTAIL 0
 #define TESTRIGHTTAIL 0
@@ -38,6 +38,9 @@ float heading; //the current direction in degrees
 double d_heading, course, currentCourse; //d__heading is heading converted to double, course is the desired direction
 double target = 0; // target for compass diferanse
 double diff;      //  diff to target
+
+int timeCount =0;
+
 
 static int elevatorPin = 4;  // "staget" styres over denne
 static int motor1Pin   = 9;  // H-bridge leg 1 (pin 2, 1A)
@@ -97,12 +100,12 @@ void setup() {
 
     altitudePID.SetMode(AUTOMATIC);
     altitudePID.SetOutputLimits(-255, 255); 
-    altitudePID.SetSampleTime(5);
+    altitudePID.SetSampleTime(1);
     
     //vi må jobbe med å finne riktig maks outpoot for proppelen.
     tailPID.SetMode(AUTOMATIC);
     tailPID.SetOutputLimits(-100, 150); 
-    tailPID.SetSampleTime(5);
+    tailPID.SetSampleTime(1);
 
     /*testPID.SetMode(AUTOMATIC);*/
     /*testPID.SetOutputLimits(-255, 255); */
@@ -138,68 +141,12 @@ void setup() {
     smoothedLeftRange = minLeftRange + 30; //leftRange;
     smoothedRightRange = minRightRange + 30; //rightRange;
     smoothedAltitudeRange = targetAltitude; //altitudeRange; 
+
     
     filterVal = 0.8;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
     filterCollisionVal = 0.2; //lav smoothing gir høy hastighet men større sjans på feil, jeg mener denne bør være høy på kollisjon!
 }
 
-void printDiff() {
-  Serial.print("--- DIFF: ");
-  Serial.println(diff);
-}
-
-void printCourse(){
-    Serial.print("--- COURSE: ");
-    Serial.println(course);
-}
-    
-void printRanges(){
-    Serial.print("--- FORWARD RANGE: ");
-    Serial.print("RAW: ");
-    Serial.println(forwardRange);
-    Serial.print("--- Smoothed: ");
-    Serial.println(smoothedForwardRange);
-    Serial.print("--- RIGHT RANGE: ");
-    Serial.print("RAW: ");
-    Serial.println(rightRange);
-    Serial.print("--- Smoothed: ");
-    Serial.println(smoothedRightRange);
-    Serial.print("--- LEFT RANGE: ");
-    Serial.print("RAW: ");
-    Serial.println(leftRange);
-    Serial.print("--- Smoothed: ");
-    Serial.println(smoothedLeftRange);
-    Serial.print("--- ALTITUDE RANGE: ");
-    Serial.print("RAW: ");
-    Serial.println(altitudeRange);
-    Serial.print("--- Smoothed: ");
-    Serial.println(smoothedAltitudeRange);
-}
-
-void printVoltage(){
-    Serial.print("--- VOLTAGE: ");
-    Serial.println(voltage);
-}
-
-void printTailAcceleration(){
-    Serial.print("--- TAILACCELERATION: ");
-    Serial.println(tailAcceleration);
-}
-
-void printHeading(){
-    Serial.print("--- HEADING: ");
-    Serial.println(heading);
-}
-
-void printAltitude(){
-    Serial.print("--- ALTITUDE RANGE: ");
-    Serial.println(altitudeRange);
-}
-
-void printAcceleration(){
-    Serial.print("--- ACCELERATION: ");
-    Serial.println(acceleration);
-}
 
 void readAllSensors(){
     altitudeRange = analogRead(altitudeRangePin);
@@ -262,9 +209,12 @@ void turnToCourse(double course){
   // if colliton is up front:
     if (smoothedForwardRange < minForwardRange) {
       collisionDetected = true;
-        Serial.println("!!!!!!!!!!!!!!!");
-         Serial.print("Kolisjon oppdaget forut, ny kurs: ");
-         Serial.println("!!!!!!!!!!!!!!!");
+
+      if(DEBUG ==1){
+          Serial.println("!!!!!!!!!!!!!!!");
+          Serial.print("Kolisjon oppdaget forut, ny kurs: ");
+          Serial.println("!!!!!!!!!!!!!!!");
+      }
         //check wich way to turn:
         if (smoothedLeftRange > smoothedRightRange) { //turn LEFT
           course = course - 150;
@@ -274,8 +224,10 @@ void turnToCourse(double course){
           if (course < 0) {
               course = course + 360;
           }
-          Serial.print("new course: ");
-          Serial.println(course);
+          if(DEBUG == 1){
+              Serial.print("new course: ");
+              Serial.println(course);
+          }
           return true;
  
         } else { //turn RIGHT
@@ -288,18 +240,22 @@ void turnToCourse(double course){
              if (course < 0) {
                course = course + 360;
              }
-             Serial.print("new course: ");
-             Serial.println(course);
+             if(DEBUG == 1){
+                 Serial.print("new course: ");
+                 Serial.println(course);
+             }
              return true;
         }
     }
         
     if (smoothedLeftRange < minLeftRange) {
-         Serial.println("!!!!!!!!!!!!!!!");
-         Serial.print("Kolisjon oppdaget til venstre!");
-         Serial.println("!!!!!!!!!!!!!!!");
-         collisionDetected = true; // sørger for at vi ikke oppdager samme kolisjon mange ganger
-      course = d_heading + 70;
+        if(DEBUG == 1){
+            Serial.println("!!!!!!!!!!!!!!!");
+            Serial.print("Kolisjon oppdaget til venstre!");
+            Serial.println("!!!!!!!!!!!!!!!");
+        }
+        collisionDetected = true; // sørger for at vi ikke oppdager samme kolisjon mange ganger
+        course = d_heading + 70;
       
        if (course > 360) {
             course = course - 360;
@@ -307,15 +263,19 @@ void turnToCourse(double course){
            if (course < 0) {
                course = course + 360;
              }
-             Serial.print("new course: ");
-             Serial.println(course);
+             if(DEBUG == 1){
+                 Serial.print("new course: ");
+                 Serial.println(course);
+             }
     }
     //kolisjon oppdaget til høyre:
     if (smoothedRightRange < minRightRange) { 
           collisionDetected = true; //se opp
-            Serial.println("!!!!!!!!!!!!!!!");
-         Serial.print("Kolisjon oppdaget til høyre, ny kurs: ");
-         Serial.println("!!!!!!!!!!!!!!!");
+          if(DEBUG == 1){
+              Serial.println("!!!!!!!!!!!!!!!");
+              Serial.print("Kolisjon oppdaget til høyre, ny kurs: ");
+              Serial.println("!!!!!!!!!!!!!!!");
+          }
            //turn left with X degrees
           course = d_heading - 70;
            if (course > 360) {
@@ -325,12 +285,13 @@ void turnToCourse(double course){
                course = course + 360;
              
           }
+          if(DEBUG == 1){
           Serial.print("new course: ");
              Serial.println(course);
+          }
 
          return true;
     }
-  
     return false;
 }
 
@@ -368,8 +329,9 @@ void loop(){
         testDownAcceleration();
     }
     else{
-        heading = getHeading();
-        d_heading = (double)heading;
+      
+        //heading = getHeading();
+        //d_heading = (double)heading;
         calculateDiff();
         
         readAllSensors();
@@ -381,21 +343,31 @@ void loop(){
         
         altitudePID.Compute();
         tailPID.Compute();
-        /*testPID.Compute();*/
+        //testPID.Compute();
         if( collisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
-          if (!detectCollision() ) { //setter ny kurs om en kolisjon oppda
-         Serial.println("ingen kollisjoner oppdaget"); //sjekker om vi kolliderer og oppdaterer kurs om nødvendig 
+         if (!detectCollision() ) { //setter ny kurs om en kolisjon oppda
+        // Serial.println("ingen kollisjoner oppdaget"); //sjekker om vi kolliderer og oppdaterer kurs om nødvendig 
           }
         }
         //Serial.println(abs(d_heading));
-        accelerate();              
+        //accelerate();              
         turnToCourse(course); //svinger med akselerasjon mot korrekt kurs.
          if (d_heading - course > -3 && d_heading - course < 3) {
            collisionDetected = false;
-           Serial.println("!!!! kolisjon avverget !!! ");
-           Serial.println();
-        
+           if(DEBUG == 1){
+               Serial.println("!!!! kolisjon avverget !!! ");
+               Serial.println();        
+           }
          }
+         
+           timeCount = timeCount +1;
+           if (timeCount == 100) {
+             Serial.print("100 cycles took: ");
+             Serial.println(millis());
+             delay(5000);
+             timeCount = 0;
+           }
+           
 
         if(DEBUG == 1){
             printHeading();
@@ -406,15 +378,15 @@ void loop(){
             printRanges();
             printAcceleration();
             printTailAcceleration();
-        }
+        } 
     }
 }
 
 //TODO: kutt av litt i toppen på haleproppellen
 void turnLeft(double acceleration) {
   if(DEBUG == 1){
-      Serial.print("--- Turning left with acceleration: ");
-      Serial.println(acceleration);
+      /*Serial.print("--- Turning left with acceleration: ");*/
+      /*Serial.println(acceleration);*/
   }
   digitalWrite(tailPin1, LOW);
   digitalWrite(tailPin2, HIGH);
@@ -549,7 +521,7 @@ int smooth(int data, float filterVal, float smoothedVal){
   else if (filterVal <= 0){
     filterVal = 0;
   }
-  Serial.print("SMooooooTh!");
+  //Serial.print("SMooooooTh!");
   //smoothedVal = smoothedVal + (data - smoothedVal)*filterVal;
   smoothedVal = (data * (1 - filterVal)) + (smoothedVal  *  filterVal);
 
@@ -641,4 +613,62 @@ void testDownAcceleration(){
     delay(3000);
     accelerateDown(255);
     delay(3000);
+}
+
+void printDiff() {
+  Serial.print("--- DIFF: ");
+  Serial.println(diff);
+}
+
+void printCourse(){
+    Serial.print("--- COURSE: ");
+    Serial.println(course);
+}
+    
+void printRanges(){
+    Serial.print("--- FORWARD RANGE: ");
+    Serial.print("RAW: ");
+    Serial.println(forwardRange);
+    Serial.print("--- Smoothed: ");
+    Serial.println(smoothedForwardRange);
+    Serial.print("--- RIGHT RANGE: ");
+    Serial.print("RAW: ");
+    Serial.println(rightRange);
+    Serial.print("--- Smoothed: ");
+    Serial.println(smoothedRightRange);
+    Serial.print("--- LEFT RANGE: ");
+    Serial.print("RAW: ");
+    Serial.println(leftRange);
+    Serial.print("--- Smoothed: ");
+    Serial.println(smoothedLeftRange);
+    Serial.print("--- ALTITUDE RANGE: ");
+    Serial.print("RAW: ");
+    Serial.println(altitudeRange);
+    Serial.print("--- Smoothed: ");
+    Serial.println(smoothedAltitudeRange);
+}
+
+void printVoltage(){
+    Serial.print("--- VOLTAGE: ");
+    Serial.println(voltage);
+}
+
+void printTailAcceleration(){
+    Serial.print("--- TAILACCELERATION: ");
+    Serial.println(tailAcceleration);
+}
+
+void printHeading(){
+    Serial.print("--- HEADING: ");
+    Serial.println(heading);
+}
+
+void printAltitude(){
+    Serial.print("--- ALTITUDE RANGE: ");
+    Serial.println(altitudeRange);
+}
+
+void printAcceleration(){
+    Serial.print("--- ACCELERATION: ");
+    Serial.println(acceleration);
 }
