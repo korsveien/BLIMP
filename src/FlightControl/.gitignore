@@ -1,1 +1,6 @@
 *.swp
+*.swo
+*.swn
+Icon
+.DS_Store
+.dropbox
