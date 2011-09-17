@@ -35,6 +35,7 @@
 #define TIMECOUNT 0
 #define SMOOTHINGDEBUG 0
 #define ENABLETAIL 1
+#define DEBUGDIFF 1
 
 Servo elevator; // servo pointer "elevator.write"
 double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
@@ -325,6 +326,16 @@ void calculateDiff() {
   diff = course - d_heading;
   diff = diff + 180;
 
+
+  if(DEBUGDIFF == 1){
+      Serial.print("*** HEADING: ");
+      Serial.print(d_heading);
+      Serial.print("*** COURSE: ");
+      Serial.print(course);
+      Serial.print("*** DIFF: ");
+      Serial.println(diff);
+  }
+
   if (diff > 360) {
     diff = diff - 360;
   } 
@@ -375,6 +386,17 @@ void loop(){
             if(collisionDetected == false) { //hvis vi allerede ikke har oppdaget kolisjon
                 detectCollision();
             }
+            turnToCourse(course); //svinger med akselerasjon mot korrekt kurs.
+
+            //FIXME: vil slå av collision-flagget mens piden aksellerer
+            //forbi kursen
+            if (diff > -3 &&  diff < 3) {
+                collisionDetected = false;
+                if(DEBUG == 1){
+                    Serial.println("!!!! kolisjon avverget !!! ");
+                    Serial.println();        
+           }
+         }
         }
 
         accelerate();              
