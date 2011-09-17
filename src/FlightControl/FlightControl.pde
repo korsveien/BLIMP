@@ -38,6 +38,8 @@
 #define ENABLETAIL 0
 #define DEBUGDIFF 0
 
+unsigned long airTime = 280000; //time spent in air in ms
+
 Servo elevator; // servo pointer "elevator.write"
 double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
 double tailAcceleration, tailDefaulAcceleration, tailThrust;  //acceleration variables for tail propeller
@@ -146,7 +148,7 @@ void setup() {
 
     //setter startverdier for avstandsbegrensninger og start kurs.
     course = 180;
-    targetAltitude = 120;
+    targetAltitude = 150;
     minForwardRange = 180;
     minRightRange = 180;
     minLeftRange = 180;
@@ -376,16 +378,22 @@ void dirtyCollisionDetection(){
 double stakeOutCourse(){return 0.0;}
 
 void loop(){ 
-    if((millis() - t0) > 15000){
-        accelerateDown(255);
+    if((millis() - t0) > airTime){
+        Serial.println("*** TIMER ENGAGED, LANDING");
+            while(1){
+                delay(4);
+                accelerateDown(255);
+                turnLeft(0);
+                turnRight(0);
+            }
     }
-    if(ELEVATORTEST == 1){
+    else if(ELEVATORTEST == 1){
         elevatorTest();
     }
-    if(BATTERYMONITOR == 1){
+    else if(BATTERYMONITOR == 1){
         batteryMonitor();
     }
-    if(TESTDOUBLES == 1){
+    else if(TESTDOUBLES == 1){
         testDoubleEngines();
     }
     else if(TESTTAIL == 1){
@@ -436,7 +444,7 @@ void loop(){
             printAltitude();
         }
          
-        printSmoothedRanges();
+        /*printSmoothedRanges();*/
          if(TIMECOUNT == 1){
              timeCount = timeCount +1;
              if (timeCount == 100) {
