@@ -20,6 +20,7 @@
 #include <Servo.h>
 #include <Wire.h>
 
+
 #define SMOOTHED 1
 #define DEBUG 0
 #define TESTDOUBLES 0
@@ -28,14 +29,14 @@
 #define TESTDOWN 0
 #define BATTERYMONITOR 0
 #define FRONTCOLLISION 1
-#define LEFTCOLLISION 0
-#define RIGHTCOLLISION 0
+#define LEFTCOLLISION 1
+#define RIGHTCOLLISION 1
 #define ELEVATORTEST 0
 #define ALTITUDEDEBUG 0
 #define TIMECOUNT 0
 #define SMOOTHINGDEBUG 0
-#define ENABLETAIL 1
-#define DEBUGDIFF 1
+#define ENABLETAIL 0
+#define DEBUGDIFF 0
 
 Servo elevator; // servo pointer "elevator.write"
 double acceleration, defaultAcceleration,thrust; //acceleration variables for main propellers
@@ -97,16 +98,18 @@ float smoothedAltitudeRangeFinal, smoothedLeftRangeTmp, smoothedRightRangeTmp, s
 // Input    : Variable we are trying to control(double)
 // Output   : The variable that will be adjusted by the PID(double)
 // Setpoint : The value we want to Input to maintain(double)
-PID altitudePID(&d_smoothedAltitudeRange, &acceleration, &targetAltitude,2,0,0,DIRECT); 
+PID altitudePID(&d_smoothedAltitudeRange, &acceleration, &targetAltitude,2.9,0,0,DIRECT); 
 PID tailPID(&diff, &tailAcceleration, &target,0.5,0,0,DIRECT); 
 
 //for testing multiple PID's using forward sensor
 /*double targetTestRange = 50.0;*/
 /*PID testPID(&forwardRange, &tailAcceleration, &targetTestRange,4,0,0,DIRECT);*/
 
+unsigned long t0;
 void setup() {
 
     Serial.begin(9600); //skjermutskrift på
+    t0 = millis();
 
     altitudePID.SetMode(AUTOMATIC);
     altitudePID.SetOutputLimits(-255, 255); 
@@ -144,16 +147,16 @@ void setup() {
     //setter startverdier for avstandsbegrensninger og start kurs.
     course = 180;
     targetAltitude = 120;
-    minForwardRange = 200;
-    minRightRange = 200;
-    minLeftRange = 200;
-    smoothedForwardRange = minForwardRange + 30; //forwardRange;
-    smoothedLeftRange = minLeftRange + 30; //leftRange;
-    smoothedRightRange = minRightRange + 30; //rightRange;
+    minForwardRange = 180;
+    minRightRange = 180;
+    minLeftRange = 180;
+    smoothedForwardRange = minForwardRange + 50; //forwardRange;
+    smoothedLeftRange = minLeftRange + 50; //leftRange;
+    smoothedRightRange = minRightRange + 50; //rightRange;
     smoothedAltitudeRange = targetAltitude; //altitudeRange; 
 
     filterVal = 0.03;  //høy smoothing gir treg respons om loopen kjører sakte, finn ut hvor fort loopen kjører
-    filterCollisionVal = 0.05;
+    filterCollisionVal = 0.1;
 }
 
 void readAllSensors(){
@@ -192,14 +195,14 @@ void accelerate(){
 
     /*printAcceleration();*/
     //if we are below target go up, if not go down
-    if(acceleration > 100){
+    if(acceleration > 115){
         accelerateUp(thrust);
     }
-    else if(acceleration < -100){
+    else if(acceleration < -115){
         accelerateDown(thrust);
     }
     else { 
-        defaultGlide(180);
+        defaultGlide(170);
     }
 }
 
@@ -235,6 +238,7 @@ boolean detectCollision()
                 Serial.print("Kolisjon oppdaget forut, ny kurs: ");
                 Serial.println("!!!!!!!!!!!!!!!");
             }
+
             //check wich way to turn:
             if (smoothedLeftRange > smoothedRightRange) { //turn LEFT
                 course = course - 150;
@@ -343,11 +347,38 @@ void calculateDiff() {
     diff = diff + 360;
   }
 }
+
+void dirtyCollisionDetection(){
+    if(smoothedForwardRange < minForwardRange){
+        if(smoothedLeftRange > smoothedRightRange){
+                turnLeft(75);
+               // turnLeft(0);
+        }
+        else if(smoothedLeftRange < smoothedRightRange){
+                turnRight(80);
+               // turnRight(0);
+        }
+       
+    }
+    else if(smoothedLeftRange < minLeftRange){
+            turnRight(80);
+            //turnRight(0);
+    }
+    else if(smoothedRightRange < minRightRange){
+            turnLeft(60);
+           // turnLeft(0);
+    }
+    else { turnRight(0);
+    }
+}
           
 // return new course based on collision info
 double stakeOutCourse(){return 0.0;}
 
 void loop(){ 
+    if((millis() - t0) > 15000){
+        accelerateDown(255);
+    }
     if(ELEVATORTEST == 1){
         elevatorTest();
     }
@@ -367,7 +398,6 @@ void loop(){
         testDownAcceleration();
     }
     else{
-      
         heading = getHeading();
         d_heading = (double)heading;
         calculateDiff();
@@ -399,11 +429,14 @@ void loop(){
          }
         }
 
+        dirtyCollisionDetection();
+
         accelerate();              
         if(ALTITUDEDEBUG == 1){
             printAltitude();
         }
          
+        printSmoothedRanges();
          if(TIMECOUNT == 1){
              timeCount = timeCount +1;
              if (timeCount == 100) {
@@ -433,8 +466,8 @@ void turnLeft(double acceleration) {
       Serial.print("*** Turning left with acceleration: ");
       Serial.println(acceleration);
   }
-  digitalWrite(tailPin1, LOW);
-  digitalWrite(tailPin2, HIGH);
+  digitalWrite(tailPin1, HIGH);
+  digitalWrite(tailPin2, LOW);
   analogWrite(enablePin2, acceleration);
 }
 
@@ -444,8 +477,8 @@ void turnRight(double acceleration){
       Serial.print("*** Turning right with acceleration: ");
       Serial.println(acceleration);
   }
-  digitalWrite(tailPin1, HIGH);
-  digitalWrite(tailPin2, LOW);
+  digitalWrite(tailPin1, LOW);
+  digitalWrite(tailPin2, HIGH);
   analogWrite(enablePin2, acceleration);
 }
 
@@ -457,7 +490,7 @@ void accelerateUp(double acceleration){
   
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
-  elevator.write(30);                   // snur stag i riktig posisjon
+  elevator.write(40);                   // snur stag i riktig posisjon
   delay(1);                             // venter litt på stag
   analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
@@ -472,7 +505,7 @@ void accelerateDown(double acceleration){
   }
   analogWrite(motor2Pin, 0);            // slår av motorer, mens servo kjører pga strøm/forstyrrelser
   digitalWrite(motor1Pin, LOW);
-  elevator.write(118);                   // snur stag i riktig posisjon
+  elevator.write(110);                   // snur stag i riktig posisjon
   delay(1);                             // venter litt på stag
   analogWrite(motor2Pin, acceleration); // starter motorer med PID akselerasjon
   digitalWrite(motor1Pin, LOW);
@@ -721,4 +754,17 @@ void printAltitude(){
 void printAcceleration(){
     Serial.print("*** ACCELERATION: ");
     Serial.println(acceleration);
+}
+
+void printSmoothedRanges() {
+  
+  Serial.print("Foran: ");
+  Serial.println(forwardRange),
+  Serial.println(smoothedForwardRange);
+  Serial.print("Venstre: ");
+  Serial.println(leftRange);
+  Serial.println(smoothedLeftRange);
+  Serial.println("Hoyre");
+  Serial.println(rightRange);
+  Serial.println(smoothedRightRange);
 }
